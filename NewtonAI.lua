@@ -1,7 +1,7 @@
 function widget:GetInfo()
    return {
       name         = "NewtonAI",
-      desc         = "attempt to make AI for Newton. Version 0,9",
+      desc         = "attempt to make AI for Newton. Version 1.00",
       author       = "terve886, parts by ivand/Shaman",
       date         = "2019",
       license      = "PD", -- should be compatible with Spring
@@ -61,7 +61,7 @@ local cmdToggleNewtonAI = {
 	tooltip = 'Toggles NewtonAI widget behavior for unit.',
 	action  = 'oneclickwep',
 	params  = { }, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
+	texture = 'LuaUI/Images/commands/states/ai_on.png',
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
 }
 

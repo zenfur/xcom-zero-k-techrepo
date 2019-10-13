@@ -1,7 +1,7 @@
 function widget:GetInfo()
    return {
       name         = "JugglerAI",
-      desc         = "attempt to make AI for Juggler. Version 0,9",
+      desc         = "attempt to make AI for Juggler. Version 1.00",
       author       = "terve886, parts by ivand/Shaman",
       date         = "2019",
       license      = "PD", -- should be compatible with Spring
@@ -64,7 +64,7 @@ local cmdToggle = {
 	tooltip = 'Makes Jugglenaut switch between push and pull automatically when enemy is near',
 	action  = 'reclaim',
 	params  = { }, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
+	texture = 'LuaUI/Images/commands/states/ai_on.png',
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
 }
 

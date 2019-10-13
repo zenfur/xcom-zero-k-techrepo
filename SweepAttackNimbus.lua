@@ -51,7 +51,7 @@ local cmdSweep = {
 	tooltip = 'Makes Nimbus sweep the area before it with attacks to search for stealthed units.',
 	action  = 'oneclickwep',
 	params  = { }, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
+	texture = 'unitpics/weaponmod_autoflechette.png',
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
 }
 

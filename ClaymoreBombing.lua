@@ -1,14 +1,14 @@
 function widget:GetInfo()
-  return {
-    name      = "ClaymoreBombing",
-    desc      = "Allows Claymores to drop bombs while transported. Version 3.00",
-    author    = "terve886",
-    date      = "2019",
-    license   = "PD", -- should be compatible with Spring
-    layer     = 0,
-	handler		= true, --for adding customCommand into UI
-    enabled   = true  --  loaded by default?
-  }
+	return {
+		name      = "ClaymoreBombing",
+		desc      = "Allows Claymores to drop bombs while transported. Version 3.20",
+		author    = "terve886",
+		date      = "2019",
+		license   = "PD", -- should be compatible with Spring
+		layer     = 0,
+		handler		= true, --for adding customCommand into UI
+		enabled   = true  --  loaded by default?
+	}
 end
 
 local UPDATE_FRAME=1
@@ -55,27 +55,27 @@ local cmdReloadClaymore = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes transport land Claymore with the purpose of letting it reload before lifting it up again',
 	action  = 'repair',
-	params  = { }, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	params  = { },
+	texture = 'LuaUI/Images/plus_green.png',
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 local cmdDropClaymoreBomb = {
 	id      = CMD_DROP_CLAYMORE_BOMB,
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes transport force claymore bomb drop',
 	action  = 'reclaim',
-	params  = {}, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	params  = {},
+	texture = 'LuaUI/Images/commands/states/divebomb_shield.png',
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 local cmdSetReloadingZone = {
 	id      = CMD_SET_RELOAD_ZONE,
 	type    = CMDTYPE.ICON_MAP,
 	tooltip = 'Sets automatic resupply Zone for the transport',
 	action  = '',
-	params  = {}, 
+	params  = {},
 	texture = 'LuaUI/Images/commands/Bold/drop_flag.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
@@ -84,16 +84,16 @@ local reloadController = {
 	unitID,
 	targetFrame,
 	pickupTarget,
-	
-	
+
+
 	new = function(self, unitID, target, reload)
 		self = deepcopy(self)
 		self.unitID = unitID
-		self.targetFrame = reload+40
+		self.targetFrame = currentFrame+50
 		self.pickupTarget = target
 		return self
 	end,
-	
+
 	handle = function(self)
 		if (currentFrame>self.targetFrame)then
 			local reload = GetUnitWeaponState(self.pickupTarget, 1, "reloadState")
@@ -119,7 +119,7 @@ local transportController = {
 	autoReloadToggle = true,
 	fight = false,
 	fightPos,
-	
+
 	new = function(self, unitID)
 		--Echo("transportController added:" .. unitID)
 		self = deepcopy(self)
@@ -133,31 +133,31 @@ local transportController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	getToggleState = function(self)
 		return self.autoReloadToggle
 	end,
-	
+
 	toggleOn = function (self)
 		self.autoReloadToggle = true
 	end,
-	
+
 	toggleOff = function (self)
 		self.autoReloadToggle = false
 	end,
-	
+
 	toggleFightOn = function (self)
 		self.fight = true
 	end,
-	
+
 	toggleFightOff = function (self)
 		self.fight = false
 	end,
-	
+
 	setReloadZone = function(self, coordinates)
 		self.reloadZone = coordinates
 	end,
-	
+
 	handle = function(self)
 		if(self.fight)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -182,7 +182,7 @@ local transportController = {
 									--Echo("Bomb drop order given to unit:" .. transportedUnitID)
 									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
 									--Echo("Load order given to unit:" .. selectedTransports[i])
-								
+
 									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_UNLOAD_UNITS, CMD_OPT_SHIFT, self.reloadZone[1],self.reloadZone[2],self.reloadZone[3]}, {"alt"})
 									local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
 									reloaderStack[self.unitID] = reloadController:new(self.unitID, transportedUnitID, reloadState);
@@ -191,7 +191,7 @@ local transportController = {
 									GiveOrderToUnit(transportedUnitID, CMD_DROP_BOMB, {},0)
 									--Echo("Bomb drop order given to unit:" .. transportedUnitID)
 									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
-									
+
 									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.fightPos[1],self.fightPos[2],self.fightPos[3]}, {"alt"})
 									--Echo("Load order given to unit:" .. selectedTransports[i])
 								end
@@ -206,19 +206,19 @@ local transportController = {
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
-	and (unitTeam==GetMyTeamID()) then
+			and (unitTeam==GetMyTeamID()) then
 		TransporterStack[unitID] = transportController:new(unitID);
 	end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
-		and not TransporterStack[unitID] then
-			TransporterStack[unitID] = transportController:new(unitID);
+			and not TransporterStack[unitID] then
+		TransporterStack[unitID] = transportController:new(unitID);
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (TransporterStack[unitID]==nil) then
 		TransporterStack[unitID]=TransporterStack[unitID]:unset();
 	end
@@ -251,7 +251,7 @@ function widget:CommandNotify(cmdID, params, options)
 							--Echo("Bomb drop order given to unit:" .. transportedUnitID)
 							GiveOrderToUnit(selectedTransports[i], CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
 							--Echo("Load order given to unit:" .. selectedTransports[i])
-						
+
 							GiveOrderToUnit(selectedTransports[i], CMD_INSERT,{0, CMD_UNLOAD_UNITS, CMD_OPT_SHIFT, TransporterStack[selectedTransports[i]].reloadZone[1],TransporterStack[selectedTransports[i]].reloadZone[2],TransporterStack[selectedTransports[i]].reloadZone[3]}, {"alt"})
 							local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
 							reloaderStack[selectedTransports[i]] = reloadController:new(selectedTransports[i], transportedUnitID, reloadState);
@@ -279,7 +279,7 @@ function widget:CommandNotify(cmdID, params, options)
 					transportedUnitID = transportedUnit[1]
 					DefID = GetUnitDefID(transportedUnitID)
 					if (UnitDefs[DefID].name == Claymore_NAME) then
-					
+
 						local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
 						if(currentFrame >= reloadState)then
 							break --already loaded
@@ -292,7 +292,7 @@ function widget:CommandNotify(cmdID, params, options)
 				until true
 			end
 		end
-		
+
 		if (cmdID == CMD_FIND_PAD)then
 			local toggleStateGot = false
 			local toggleState
@@ -313,7 +313,7 @@ function widget:CommandNotify(cmdID, params, options)
 			end
 			return true
 		end
-		
+
 		if (cmdID == CMD_SET_RELOAD_ZONE and #params==3)then
 			for i=1, #selectedTransports do
 				TransporterStack[selectedTransports[i]]:setReloadZone(params)
@@ -358,43 +358,37 @@ end
 function widget:CommandsChanged()
 	if selectedTransports ~= nil then
 		local customCommands = widgetHandler.customCommands
-		customCommands[#customCommands+1] = cmdReloadClaymore
 		customCommands[#customCommands+1] = cmdDropClaymoreBomb
+		customCommands[#customCommands+1] = cmdReloadClaymore
 		customCommands[#customCommands+1] = cmdSetReloadingZone
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 
 	for _,Reloader in pairs(reloaderStack) do
 		Reloader:handle()
 	end
-	
+
 	for _,ClaymoreBomber in pairs(TransporterStack) do
 		ClaymoreBomber:handle()
 	end
-	
-	--for i=1, #reloaderStack do
-		--if(reloaderStack[i] and reloaderStack[i]:handle(i))then
-			--i = i-1
-		--end
-	--end
 end
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 -- The rest of the code is there to disable the widget for spectators
@@ -407,7 +401,7 @@ end
 
 function widget:Initialize()
 	DisableForSpec()
-	
+
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
 		unitID = units[i]

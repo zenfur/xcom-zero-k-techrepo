@@ -63,7 +63,7 @@ local cmdForcePreFire = {
 	tooltip = 'Makes Kodachi shoot towards enemy closest to it.',
 	action  = 'oneclickwep',
 	params  = { }, 
-	texture = 'LuaUI/Images/commands/Bold/dgun.png',
+	texture = 'unitpics/weaponmod_flame_enhancer.png',
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
 }
 
