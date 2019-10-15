@@ -43,7 +43,7 @@ local BurrowAttackController = {
 	
 	
 	new = function(self, unitID)
-		Echo("BurrowAttackController added:" .. unitID)
+		--Echo("BurrowAttackController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = UnitDefs[GetUnitDefID(self.unitID)].decloakDistance
@@ -52,7 +52,7 @@ local BurrowAttackController = {
 	end,
 
 	unset = function(self)
-		Echo("BurrowAttackController removed:" .. self.unitID)
+		--Echo("BurrowAttackController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

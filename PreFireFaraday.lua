@@ -50,7 +50,7 @@ local FaradayController = {
 	
 	
 	new = function(self, unitID)
-		Echo("FaradayController added:" .. unitID)
+		--Echo("FaradayController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)-6
@@ -63,7 +63,7 @@ local FaradayController = {
 	end,
 
 	unset = function(self)
-		Echo("FaradayController removed:" .. self.unitID)
+		--Echo("FaradayController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

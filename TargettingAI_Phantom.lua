@@ -52,7 +52,7 @@ local PhantomController = {
 	
 	
 	new = function(self, unitID)
-		Echo("PhantomController added:" .. unitID)
+		--Echo("PhantomController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -61,7 +61,7 @@ local PhantomController = {
 	end,
 
 	unset = function(self)
-		Echo("PhantomController removed:" .. self.unitID)
+		--Echo("PhantomController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
@@ -104,7 +104,6 @@ local PhantomController = {
 					enemyPosition = {GetUnitPosition(units[i])}
 					if(enemyPosition[2]>-30)then
 						if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-							Echo(units[i])
 							GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 							return true
 						end

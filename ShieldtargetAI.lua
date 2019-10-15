@@ -95,14 +95,14 @@ local ShieldTargettingController = {
 		local wd = WeaponDefs[weaponDefID]
 		if(weaponDefID and wd.damages[4])then
 			self.damage = wd.damages[4]
-			Echo("ShieldTargettingController added:" .. unitID)
+			--Echo("ShieldTargettingController added:" .. unitID)
 			return self
 		end
 		return nil
 	end,
 
 	unset = function(self)
-		Echo("ShieldTargettingController removed:" .. self.unitID)
+		--Echo("ShieldTargettingController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
@@ -199,7 +199,7 @@ local BuildingShieldTargettingController = {
 	
 	
 	new = function(self, unitID)
-		Echo("BuildingShieldTargettingController added:" .. unitID)
+		--Echo("BuildingShieldTargettingController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -212,7 +212,7 @@ local BuildingShieldTargettingController = {
 	end,
 
 	unset = function(self)
-		Echo("ShieldTargettingController removed:" .. self.unitID)
+		--Echo("ShieldTargettingController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

@@ -105,7 +105,7 @@ local RushController = {
 	
 	
 	new = function(self, unitID)
-		Echo("RushController added:" .. unitID)
+		--Echo("RushController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.toggle = RushProduction
@@ -115,7 +115,7 @@ local RushController = {
 	end,
 
 	unset = function(self)
-		Echo("RushController removed:" .. self.unitID)
+		--Echo("RushController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

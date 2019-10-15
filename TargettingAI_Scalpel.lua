@@ -62,7 +62,7 @@ local ScalpelController = {
 	
 	
 	new = function(self, unitID)
-		Echo("ScalpelController added:" .. unitID)
+		--Echo("ScalpelController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -75,7 +75,7 @@ local ScalpelController = {
 	end,
 
 	unset = function(self)
-		Echo("ScalpelController removed:" .. self.unitID)
+		--Echo("ScalpelController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
@@ -94,7 +94,6 @@ local ScalpelController = {
 				enemyPosition = {GetUnitPosition(units[i])}
 				if(enemyPosition[2]>-30)then
 					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-						Echo(units[i])
 						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 						return true
 					end

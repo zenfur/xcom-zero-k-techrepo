@@ -54,7 +54,7 @@ local SolarAI = {
 	enemyNear = false,
 	
 	new = function(self, unitID)
-		Echo("SolarAI added:" .. unitID)
+		--Echo("SolarAI added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -62,7 +62,7 @@ local SolarAI = {
 	end,
 
 	unset = function(self)
-		Echo("SolarAI removed:" .. self.unitID)
+		--Echo("SolarAI removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

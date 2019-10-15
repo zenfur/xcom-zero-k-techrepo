@@ -60,7 +60,7 @@ local RipperController = {
 	
 	
 	new = function(self, unitID)
-		Echo("RipperController added:" .. unitID)
+		--Echo("RipperController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -73,7 +73,7 @@ local RipperController = {
 	end,
 
 	unset = function(self)
-		Echo("RipperController removed:" .. self.unitID)
+		--Echo("RipperController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

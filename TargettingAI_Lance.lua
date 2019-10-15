@@ -52,7 +52,7 @@ local LanceController = {
 	
 	
 	new = function(self, unitID)
-		Echo("LanceController added:" .. unitID)
+		--Echo("LanceController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -61,7 +61,7 @@ local LanceController = {
 	end,
 
 	unset = function(self)
-		Echo("LanceController removed:" .. self.unitID)
+		--Echo("LanceController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
@@ -100,7 +100,6 @@ local LanceController = {
 				enemyPosition = {GetUnitPosition(units[i])}
 				if(enemyPosition[2]>-30)then
 					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-						Echo(units[i])
 						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 						return true
 					end

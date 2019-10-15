@@ -79,7 +79,7 @@ local KodachiController = {
 	
 	
 	new = function(self, unitID)
-		Echo("KodachiController added:" .. unitID)
+		--Echo("KodachiController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)-6
@@ -92,7 +92,7 @@ local KodachiController = {
 	end,
 
 	unset = function(self)
-		Echo("KodachiController removed:" .. self.unitID)
+		--Echo("KodachiController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD.STOP, {}, {""},1)
 		return nil
 	end,

@@ -61,7 +61,7 @@ local ModeratorController = {
 	
 	
 	new = function(self, unitID)
-		Echo("ModeratorController added:" .. unitID)
+		--Echo("ModeratorController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -74,7 +74,7 @@ local ModeratorController = {
 	end,
 
 	unset = function(self)
-		Echo("ModeratorController removed:" .. self.unitID)
+		--Echo("ModeratorController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
@@ -92,7 +92,6 @@ local ModeratorController = {
 				enemyPosition = {GetUnitPosition(units[i])}
 				if(enemyPosition[2]>-30)then
 					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-						Echo(units[i])
 						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 						return true
 					end

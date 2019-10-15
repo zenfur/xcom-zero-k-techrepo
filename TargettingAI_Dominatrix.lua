@@ -54,7 +54,7 @@ local DominatrixController = {
 	
 	
 	new = function(self, unitID)
-		Echo("DominatrixController added:" .. unitID)
+		--Echo("DominatrixController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -63,7 +63,7 @@ local DominatrixController = {
 	end,
 
 	unset = function(self)
-		Echo("DominatrixController removed:" .. self.unitID)
+		--Echo("DominatrixController removed:" .. self.unitID)
 		self.alive = false
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil

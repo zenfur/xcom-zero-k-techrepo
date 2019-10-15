@@ -62,7 +62,7 @@ local FelonController = {
 	
 	
 	new = function(self, unitID)
-		Echo("FelonController added:" .. unitID)
+		--Echo("FelonController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -75,7 +75,7 @@ local FelonController = {
 	end,
 
 	unset = function(self)
-		Echo("FelonController removed:" .. self.unitID)
+		--Echo("FelonController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

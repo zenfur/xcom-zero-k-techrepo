@@ -69,7 +69,7 @@ local MexHuntController = {
 	
 	
 	new = function(self, unitID)
-		Echo("MexHuntController added:" .. unitID)
+		--Echo("MexHuntController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -78,7 +78,7 @@ local MexHuntController = {
 	end,
 
 	unset = function(self)
-		Echo("MexHuntController removed:" .. self.unitID)
+		--Echo("MexHuntController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		if(MexTargetStack[self.target]~=nil)then
 			MexTargetStack[self.target]=nil

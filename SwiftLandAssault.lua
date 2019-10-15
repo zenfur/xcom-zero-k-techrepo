@@ -75,7 +75,7 @@ local landAttackController = {
 	
 	
 	new = function(self, unitID)
-		Echo("landAttackController added:" .. unitID)
+		--Echo("landAttackController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -84,7 +84,7 @@ local landAttackController = {
 	end,
 
 	unset = function(self)
-		Echo("LandController removed:" .. self.unitID)
+		--Echo("LandController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

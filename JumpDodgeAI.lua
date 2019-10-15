@@ -62,7 +62,7 @@ local JumpToAvoidSuiciderController = {
 	
 	
 	new = function(self, unitID)
-		Echo("JumpToAvoidSuiciderController added:" .. unitID)
+		--Echo("JumpToAvoidSuiciderController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		local unitDefID = GetUnitDefID(self.unitID)
@@ -76,7 +76,7 @@ local JumpToAvoidSuiciderController = {
 	end,
 
 	unset = function(self)
-		Echo("JumpToAvoidSuiciderController removed:" .. self.unitID)
+		--Echo("JumpToAvoidSuiciderController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

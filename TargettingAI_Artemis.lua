@@ -59,7 +59,7 @@ local ArtemisController = {
 	
 	
 	new = function(self, unitID)
-		Echo("ArtemisController added:" .. unitID)
+		--Echo("ArtemisController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -70,7 +70,7 @@ local ArtemisController = {
 	end,
 
 	unset = function(self)
-		Echo("ArtemisController removed:" .. self.unitID)
+		--Echo("ArtemisController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

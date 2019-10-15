@@ -71,7 +71,7 @@ local AttackModeController = {
 	
 	
 	new = function(self, unitID)
-		Echo("AttackModeController added:" .. unitID)
+		--Echo("AttackModeController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		local unitStates = GetUnitStates(self.unitID)
@@ -84,7 +84,7 @@ local AttackModeController = {
 	end,
 
 	unset = function(self)
-		Echo("AttackModeController removed:" .. self.unitID)
+		--Echo("AttackModeController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

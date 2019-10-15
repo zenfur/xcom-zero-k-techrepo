@@ -58,7 +58,7 @@ local VenomController = {
 	
 	
 	new = function(self, unitID)
-		Echo("VenomController added:" .. unitID)
+		--Echo("VenomController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -71,7 +71,7 @@ local VenomController = {
 	end,
 
 	unset = function(self)
-		Echo("VenomController removed:" .. self.unitID)
+		--Echo("VenomController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

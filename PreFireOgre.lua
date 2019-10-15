@@ -57,7 +57,7 @@ local OgreController = {
 	
 	
 	new = function(self, unitID)
-		Echo("OgreController added:" .. unitID)
+		--Echo("OgreController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)-6
@@ -70,7 +70,7 @@ local OgreController = {
 	end,
 
 	unset = function(self)
-		Echo("OgreController removed:" .. self.unitID)
+		--Echo("OgreController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD.STOP, {}, {""},1)
 		return nil
 	end,

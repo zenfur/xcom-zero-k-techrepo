@@ -77,7 +77,7 @@ local JuggleAI = {
 	checkpoint = -1,
 	
 	new = function(self, unitID)
-		Echo("JuggleAI added:" .. unitID)
+		--Echo("JuggleAI added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -86,7 +86,7 @@ local JuggleAI = {
 	end,
 
 	unset = function(self)
-		Echo("JuggleAI removed:" .. self.unitID)
+		--Echo("JuggleAI removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

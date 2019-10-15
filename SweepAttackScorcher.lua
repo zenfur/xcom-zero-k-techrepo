@@ -71,7 +71,7 @@ local SweeperController = {
 	
 	
 	new = function(self, unitID)
-		Echo("SweeperController added:" .. unitID)
+		--Echo("SweeperController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = (GetUnitMaxRange(self.unitID)-15)
@@ -85,7 +85,7 @@ local SweeperController = {
 
 
 	unset = function(self)
-		Echo("SweeperController removed:" .. self.unitID)
+		--Echo("SweeperController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

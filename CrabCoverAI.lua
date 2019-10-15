@@ -42,7 +42,7 @@ local CrabAI = {
 
 	
 	new = function(self, unitID)
-		Echo("CrabAI added:" .. unitID)
+		--Echo("CrabAI added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -52,7 +52,7 @@ local CrabAI = {
 	end,
 
 	unset = function(self)
-		Echo("CrabAI removed:" .. self.unitID)
+		--Echo("CrabAI removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

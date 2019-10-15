@@ -75,7 +75,7 @@ local NewtonAI = {
 	
 	
 	new = function(self, unitID)
-		Echo("NewtonAI added:" .. unitID)
+		--Echo("NewtonAI added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -84,7 +84,7 @@ local NewtonAI = {
 	end,
 
 	unset = function(self)
-		Echo("NewtonAI removed:" .. self.unitID)
+		--Echo("NewtonAI removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,

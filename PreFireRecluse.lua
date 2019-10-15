@@ -66,7 +66,7 @@ local RecluseController = {
 	
 	
 	new = function(self, unitID)
-		Echo("RecluseController added:" .. unitID)
+		--Echo("RecluseController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
@@ -79,7 +79,7 @@ local RecluseController = {
 	end,
 
 	unset = function(self)
-		Echo("RecluseController removed:" .. self.unitID)
+		--Echo("RecluseController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
