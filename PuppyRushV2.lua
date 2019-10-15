@@ -183,7 +183,7 @@ local RushController = {
 					target = units[i]
 					DefID = GetUnitDefID(target)
 					if(DefID)then
-						if (target==self.forceTarget or (GetUnitHealth(target)<=PuppyDamage and UnitDefs[DefID].metalCost > 51))then
+						if (target==self.forceTarget or (GetUnitHealth(target) and GetUnitHealth(target)<=PuppyDamage and UnitDefs[DefID].metalCost > 51))then
 							GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)	
 							self.target = target
 							return true
