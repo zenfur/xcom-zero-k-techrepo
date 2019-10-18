@@ -127,6 +127,7 @@ local CaretakerController = {
 	range,
 	jobs,
 	currentJob = JOB_IDLE,
+	last_job_id = -1,
 	dontManageUntil = 0,
 	
 	new = function(self, unitID)
@@ -205,6 +206,20 @@ local CaretakerController = {
 			end
 		end
 		
+		Echo("Found jobs for " .. self.unitID)
+		if reclaim_job then
+			Echo("Reclaim job found ".. reclaim_job)
+		end
+		if sabotage_job then
+			Echo("Sabotage job found " .. sabotage_job)
+		end
+		if repair_job then
+			Echo("Repair job found " .. repair_job)
+		end
+		if build_job then
+			Echo("Building job found " .. build_job)
+		end
+		
 		return {repair = repair_job, sabotage = sabotage_job, reclaim = reclaim_job, build = build_job}
 	end,
 	
@@ -215,21 +230,38 @@ local CaretakerController = {
 				if repairing check if repair target is in range
 			--]]
 			Echo("Current job " .. self.currentJob)
-			if self.currentJob ~= JOB_OVERRIDE and not IsUnitSelected(self.unitID) then
+			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(self.unitID)
 				jobs = self:findJobs() -- active job hunting
 				-- job selection
-				if jobs["sabotage"] and currentJob ~= JOB_SABOTAGE then
-					GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
-					self.currentJob = JOB_SABOTAGE
-				elseif jobs["repair"] and currentJob ~= JOB_REPAIR then 
-					GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
-					self.currentJob = JOB_REPAIR
-				elseif jobs["reclaim"] and currentJob ~= JOB_RECLAIM then
-					GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["reclaim"]}, {""}, 1)
-					self.currentJob = JOB_RECLAIM
-				elseif jobs["build"] and currentJob ~= JOB_BUILD then
-					GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
-					self.currentJob = JOB_BUILD
+				if jobs["sabotage"] then
+					Echo("Selecting sabotage job")
+					if self.last_job_id ~= jobs["sabotage"] then
+						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
+						self.currentJob = JOB_SABOTAGE
+						self.last_job_id = jobs["sabotage"]
+					end
+				elseif jobs["repair"] then
+					Echo("Selecting repair job")
+					if self.last_job_id ~= jobs["repair"] then 
+						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
+						self.currentJob = JOB_REPAIR
+						self.last_job_id = jobs["repair"]
+					end
+				elseif jobs["reclaim"] then
+					Echo("Selecting reclaim job")
+					if self.last_job_id ~= jobs["reclaim"] then
+						Echo("Last reclaim job id: " .. self.last_job_id)
+						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["reclaim"]}, {""}, 1)
+						self.currentJob = JOB_RECLAIM
+						self.last_job_id = jobs["reclaim"]
+					end
+				elseif jobs["build"] then
+					Echo("Selecting build job")
+					if self.last_job_id ~= jobs["build"] then
+						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
+						self.currentJob = JOB_BUILD
+						self.last_job_id = jobs["build"]
+					end
 				end
 			end
 		end
@@ -238,19 +270,21 @@ local CaretakerController = {
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if not (UnitRegister[unitID] == nil) then
-		if IsUnitSelected(unitID) then
-			UnitRegister[unitID].currentJob = JOB_OVERRIDE
-		end
-		if cmdID == CMD_STOP then
+		if not IsUnitSelected(unitID) or cmdID == CMD_STOP then
 			UnitRegister[unitID].currentJob = JOB_IDLE
+		else
+			Echo("Overriding the CaretakerRefresher " .. unitID)
+			-- UnitRegister[unitID].currentJob = JOB_OVERRIDE
 		end
+		UnitRegister[unitID].last_job_id = -1
 	end
 end
 
 function widget:UnitCmdDone(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if not (UnitRegister[unitID] == nil) then
 		UnitRegister[unitID].currentJob = JOB_IDLE
-		--UnitRegister[unitID]:handle()
+		UnitRegister[unitID].last_job_id = -1
+		-- UnitRegister[unitID]:handle()
 	end
 end
 
