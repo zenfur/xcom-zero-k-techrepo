@@ -135,7 +135,7 @@ local CaretakerController = {
 		self = deepcopy(self)
 		self.unitID = unitID
 		DefID = GetUnitDefID(unitID)
-		self.range = UnitDefs[DefID].buildDistance
+		self.range = UnitDefs[DefID].buildDistance-5
 		self.pos = {GetUnitPosition(self.unitID)}
 		self.jobs = {}
 		return self
@@ -251,7 +251,7 @@ local CaretakerController = {
 					Echo("Selecting reclaim job")
 					if self.last_job_id ~= jobs["reclaim"] then
 						Echo("Last reclaim job id: " .. self.last_job_id)
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["reclaim"]}, {""}, 1)
+						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {self.pos[1], self.pos[2], self.pos[3], self.range}, {""}, 1)
 						self.currentJob = JOB_RECLAIM
 						self.last_job_id = jobs["reclaim"]
 					end
