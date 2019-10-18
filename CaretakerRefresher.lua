@@ -126,8 +126,8 @@ local CaretakerController = {
 	selfTeamID = GetMyTeamID(),
 	range,
 	jobs,
-	currentJob = JOB_IDLE,
-	last_job_id = -1,
+	currentJob,
+	last_job_id,
 	dontManageUntil = 0,
 	
 	new = function(self, unitID)
@@ -135,9 +135,11 @@ local CaretakerController = {
 		self = deepcopy(self)
 		self.unitID = unitID
 		DefID = GetUnitDefID(unitID)
-		self.range = UnitDefs[DefID].buildDistance-5
+		self.range = UnitDefs[DefID].buildDistance - 25
 		self.pos = {GetUnitPosition(self.unitID)}
 		self.jobs = {}
+		self.currentJob = JOB_IDLE
+		self.last_job_id = -1
 		return self
 	end,
 
@@ -251,7 +253,7 @@ local CaretakerController = {
 					Echo("Selecting reclaim job")
 					if self.last_job_id ~= jobs["reclaim"] then
 						Echo("Last reclaim job id: " .. self.last_job_id)
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {self.pos[1], self.pos[2], self.pos[3], self.range}, {""}, 1)
+						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {Game.maxUnits + jobs["reclaim"]}, {""}, 1)--{self.pos[1], self.pos[2], self.pos[3], self.range}, {""}, 1)
 						self.currentJob = JOB_RECLAIM
 						self.last_job_id = jobs["reclaim"]
 					end
@@ -274,7 +276,7 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 			UnitRegister[unitID].currentJob = JOB_IDLE
 		else
 			Echo("Overriding the CaretakerRefresher " .. unitID)
-			-- UnitRegister[unitID].currentJob = JOB_OVERRIDE
+			UnitRegister[unitID].currentJob = JOB_OVERRIDE
 		end
 		UnitRegister[unitID].last_job_id = -1
 	end
@@ -284,7 +286,7 @@ function widget:UnitCmdDone(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 	if not (UnitRegister[unitID] == nil) then
 		UnitRegister[unitID].currentJob = JOB_IDLE
 		UnitRegister[unitID].last_job_id = -1
-		-- UnitRegister[unitID]:handle()
+		UnitRegister[unitID]:handle()
 	end
 end
 
