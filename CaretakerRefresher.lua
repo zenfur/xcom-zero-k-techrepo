@@ -1,7 +1,7 @@
 function widget:GetInfo()
    return {
       name         = "CaretakerRefresher",
-      desc         = "Refreshes caretaker jobs prioritizing repair and reclaim. Version v0.1",
+      desc         = "Refreshes caretaker jobs prioritizing repair and reclaim. Version v0.2",
       author       = "zenfur",
       date         = "2019",
       license      = "MIT",
@@ -56,6 +56,10 @@ local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
 local IsUnitSelected = Spring.IsUnitSelected
+local GetFeatureHealth = Spring.GetFeatureHealth
+--[[
+ ( number featureID ) -> nil | number health, number maxHealth, number resurrectProgress
+--]]
 local GetUnitHealth = Spring.GetUnitHealth
 --[[
  ( number unitID ) -> nil | number health, number maxHealth, number paralyzeDamage,
@@ -147,6 +151,7 @@ local CaretakerController = {
 	end,
 
 	findJobs = function(self)
+		Echo("Searching jobs...")
 		units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
 		wrecks = GetFeaturesInCylinder(self.pos[1], self.pos[3], self.range)
 		reclaim_job = false
@@ -165,7 +170,7 @@ local CaretakerController = {
 		max_dist = 0.0
 		total_metal = 0.0
 		for index, w in ipairs(wrecks) do
-			if w then
+			if w and GetFeatureHealth(w) then
 				metal  = select(1, GetFeatureResources(w))
 				resurrect_progress = select(3, GetFeatureHealth(w))
 				xx, yy, zz = GetFeaturePosition(w)
@@ -209,6 +214,7 @@ local CaretakerController = {
 				if guarding check if guard target is in range
 				if repairing check if repair target is in range
 			--]]
+			Echo("Current job " .. self.currentJob)
 			if self.currentJob ~= JOB_OVERRIDE and not IsUnitSelected(self.unitID) then
 				jobs = self:findJobs() -- active job hunting
 				-- job selection
@@ -244,7 +250,7 @@ end
 function widget:UnitCmdDone(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if not (UnitRegister[unitID] == nil) then
 		UnitRegister[unitID].currentJob = JOB_IDLE
-		UnitRegister[unitID]:handle()
+		--UnitRegister[unitID]:handle()
 	end
 end
 
