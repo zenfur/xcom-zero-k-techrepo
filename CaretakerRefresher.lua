@@ -55,6 +55,7 @@ local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
+local IsUnitSelected = Spring.IsUnitSelected
 local GetUnitHealth = Spring.GetUnitHealth
 --[[
  ( number unitID ) -> nil | number health, number maxHealth, number paralyzeDamage,
@@ -78,10 +79,8 @@ local GetFeaturePosition = Spring.GetFeaturePosition
  number apx, number apy, number apz ]]
 --]]
 
-local ENEMY_DETECT_BUFFER  = 40
 local Echo = Spring.Echo
 local target_name = "staticcon"
-
 local GetSpecState = Spring.GetSpectatingState
 
 local CMD_STOP = CMD.STOP
@@ -102,23 +101,10 @@ To use in future:
 	widget:CommandNotify()
 		This captures all the build-related commands from units in our group,
 		and adds them to the global queue.
-
- -- area job removal tool stuff --
-	widget:MousePress()
-		Captures the starting coords for the area select, sets state.
-	widget:MouseMove()
-		Tracks the mouse after a selection has started, and updates the selection
-		radius for drawing.
-	widget:MouseRelease()
-		Captures the final values for the area select and activates the removal function.
-		Also updates state depending on shift, to allow for additional selections or to deactivate
-		the tool.
-
-Jobs:
-#1 Register Caretakers on create and unregister on death - done
+		
+TODOs:
 #2 Every options.updateRate + some random refresh said caretaker job
 #3 Count caretakers, Count income, count storage
-#4 Count jobs in caretaker's range -> Reclaim, Aggresive reclaim, Repair, Build
 ]]--
 
 local JOB_SABOTAGE = 0
@@ -136,7 +122,7 @@ local CaretakerController = {
 	selfTeamID = GetMyTeamID(),
 	range,
 	jobs,
-	currentJob,
+	currentJob = JOB_IDLE,
 	dontManageUntil = 0,
 	
 	new = function(self, unitID)
@@ -177,12 +163,15 @@ local CaretakerController = {
 		-- find ally repair jobs in the area
 		
 		max_dist = 0.0
+		total_metal = 0.0
 		for index, w in ipairs(wrecks) do
 			if w then
-				metal = select(1, GetFeatureResources(w))
+				metal  = select(1, GetFeatureResources(w))
+				resurrect_progress = select(3, GetFeatureHealth(w))
 				xx, yy, zz = GetFeaturePosition(w)
 				dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
-				if metal > 0 then
+				if metal > 0 and resurrect_progress == 0 then
+					total_metal = total_metal + metal
 					if dist > max_dist then
 						reclaim_job = w
 						max_dist = dist
@@ -211,19 +200,6 @@ local CaretakerController = {
 			end
 		end
 		
-		Echo("Found jobs for " .. self.unitID)
-		if reclaim_job then
-			Echo("Reclaim job found")
-		end
-		if sabotage_job then
-			Echo("Sabotage job found")
-		end
-		if repair_job then
-			Echo("Repair job found")
-		end
-		if build_job then
-			Echo("Building job found")
-		end
 		return {repair = repair_job, sabotage = sabotage_job, reclaim = reclaim_job, build = build_job}
 	end,
 	
@@ -232,40 +208,51 @@ local CaretakerController = {
 			--[[ manage todo:
 				if guarding check if guard target is in range
 				if repairing check if repair target is in range
-				if constructing check for jobs if repair or 
 			--]]
-			-- GiveOrderToUnit(self.unitID, CMD_STOP, {}, {""},1)
-			-- GiveOrderToUnit(self.unitID, CMD_PATROL, {GetUnitPosition(self.unitID)}, {""},1)
-			jobs = self:findJobs()
-			if jobs["sabotage"] then
-				Echo("Ordering Sabotage job!")
-				GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
-				self.currentJob = JOB_SABOTAGE
-			elseif jobs["repair"] then 
-				GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
-				self.currentJob = JOB_REPAIR
-			elseif jobs["reclaim"] then
-				GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["reclaim"]}, {""}, 1)
-				self.currentJob = JOB_RECLAIM
-			elseif jobs["build"] then
-				GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
-				self.currentJob = JOB_BUILD
+			if self.currentJob ~= JOB_OVERRIDE and not IsUnitSelected(self.unitID) then
+				jobs = self:findJobs() -- active job hunting
+				-- job selection
+				if jobs["sabotage"] and currentJob ~= JOB_SABOTAGE then
+					GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
+					self.currentJob = JOB_SABOTAGE
+				elseif jobs["repair"] and currentJob ~= JOB_REPAIR then 
+					GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
+					self.currentJob = JOB_REPAIR
+				elseif jobs["reclaim"] and currentJob ~= JOB_RECLAIM then
+					GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["reclaim"]}, {""}, 1)
+					self.currentJob = JOB_RECLAIM
+				elseif jobs["build"] and currentJob ~= JOB_BUILD then
+					GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
+					self.currentJob = JOB_BUILD
+				end
 			end
-			
 		end
 	end
 }
 
--- function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
-	--if (UnitDefs[unitDefID].name == target_name and cmdID == CMD_ATTACK  and #cmdParams == 1) then
-	-- if the command is issued when unit is selected - and the command is "repair" or "reclaim" - exempt from management
-	-- if the command is patrol - resume the management
--- end
+function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
+	if not (UnitRegister[unitID] == nil) then
+		if IsUnitSelected(unitID) then
+			UnitRegister[unitID].currentJob = JOB_OVERRIDE
+		end
+		if cmdID == CMD_STOP then
+			UnitRegister[unitID].currentJob = JOB_IDLE
+		end
+	end
+end
+
+function widget:UnitCmdDone(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
+	if not (UnitRegister[unitID] == nil) then
+		UnitRegister[unitID].currentJob = JOB_IDLE
+		UnitRegister[unitID]:handle()
+	end
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
     if (string.match(UnitDefs[unitDefID].name, "dyn"))
     and (unitTeam==GetMyTeamID()) then
         originX, _, originZ = GetUnitPosition(unitID)
+		Echo("Commander found, initializing X, Y, Z as " .. originX .. " " .. _ .. " " .. originZ)
     end
 
 	if (UnitDefs[unitDefID].name==target_name)
@@ -274,12 +261,14 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
+-- removing transferred units
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if not (UnitRegister[unitID]==nil) then
+	if not (UnitRegister[unitID]==nil) and unitID == GetMyTeamID() then
 		UnitRegister[unitID]=UnitRegister[unitID]:unset();
 	end
 end
 
+-- accepting transferred units - add them to register
 function widget:UnitGiven(unitID, unitDefID, newTeam, unitTeam)
 	if (UnitDefs[unitDefID].name==target_name)
 	and (unitTeam==GetMyTeamID()) then
@@ -297,6 +286,8 @@ function widget:GameFrame(n)
 	if (n%options.updateRate.value==0) then
 		for _, TargetUnit in pairs(UnitRegister) do 
 			TargetUnit:handle()
+			-- todo: switch to scheduled management model using value below
+			TargetUnit.dontManageUntil = TargetUnit.dontManageUntil + options.updateRate.value + n%4
 		end
 	end
 end
