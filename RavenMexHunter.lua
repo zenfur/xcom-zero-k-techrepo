@@ -1,14 +1,14 @@
 function widget:GetInfo()
-   return {
-    name      = "RavenMexHunter",
-    desc      = "Attempt to make Ravens target mexes on AttackMove. Version 0,5",
-    author    = "terve886",
-    date      = "2019",
-    license   = "PD", -- should be compatible with Spring
-    layer     = 2,
-	handler		= true, --for adding customCommand into UI
-    enabled   = true  --  loaded by default?
-  }
+	return {
+		name      = "RavenMexHunter",
+		desc      = "Attempt to make Ravens target mexes on AttackMove. Version 0,5",
+		author    = "terve886",
+		date      = "2019",
+		license   = "PD", -- should be compatible with Spring
+		layer     = 2,
+		handler		= true, --for adding customCommand into UI
+		enabled   = true  --  loaded by default?
+	}
 end
 
 local pi = math.pi
@@ -66,8 +66,8 @@ local MexHuntController = {
 	allyTeamID = GetMyAllyTeamID(),
 	target,
 	hunting = false,
-	
-	
+
+
 	new = function(self, unitID)
 		--Echo("MexHuntController added:" .. unitID)
 		self = deepcopy(self)
@@ -86,12 +86,12 @@ local MexHuntController = {
 		return nil
 	end,
 
-	
-	
+
+
 	handle = function(self)
-	if (self.hunting)then	
-		self.pos = {GetUnitPosition(self.unitID)}
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
+		if (self.hunting)then
+			self.pos = {GetUnitPosition(self.unitID)}
+			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
 			for i=1, #units do
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					DefID = GetUnitDefID(units[i])
@@ -100,7 +100,7 @@ local MexHuntController = {
 							if(UnitDefs[DefID].name == Metal_NAME)then
 								if (MexTargetStack[units[i]]==nil)then
 									GiveOrderToUnit(self.unitID, CMD_ATTACK, {units[i]}, 0)
-									Echo("set target")
+									--Echo("set target")
 									MexTargetStack[units[i]]=units[i]
 									self.hunting = false
 									self.target = units[i]
@@ -118,12 +118,12 @@ local MexHuntController = {
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Raven_NAME)
-	and (unitTeam==GetMyTeamID()) then
+			and (unitTeam==GetMyTeamID()) then
 		RavenStack[unitID] = MexHuntController:new(unitID);
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (RavenStack[unitID]==nil) then
 		RavenStack[unitID]=RavenStack[unitID]:unset();
 	end
@@ -132,7 +132,7 @@ function widget:UnitDestroyed(unitID)
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 	if (n%UPDATE_FRAME==0) then
 
@@ -143,23 +143,22 @@ function widget:GameFrame(n)
 end
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Raven_NAME) then
-		Echo(cmdID)
 		if (cmdID == CMD_ATTACK_MOVE) then
 			if (RavenStack[unitID]) then
 				if(RavenStack[unitID].target)then
