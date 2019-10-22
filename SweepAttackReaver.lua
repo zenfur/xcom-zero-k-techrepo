@@ -44,6 +44,7 @@ local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
 local CMD_MOVE = CMD.MOVE
 local selectedSweepers = nil
+local sqrt = math.sqrt
 local atan = math.atan
 local sin = math.sin
 local cos = math.cos
@@ -178,6 +179,8 @@ local SweeperController = {
 	end,
 	
 	isShieldInEffectiveRange = function (self)
+		closestShieldID = nil
+		closestShieldDistance = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
@@ -186,8 +189,7 @@ local SweeperController = {
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPosition = {GetUnitPosition(units[i])}
-							local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
+							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
 							
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
@@ -195,36 +197,50 @@ local SweeperController = {
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-				
-							local targetPosRelative={
-								sin(rotation) * (targetShieldRadius-14),
-								nil,
-								cos(rotation) * (targetShieldRadius-14),
-							}
-				
-							local targetPosAbsolute = {}
-							if (self.pos[3]<=enemyPosition[3]) then
-								targetPosAbsolute = {
-									enemyPosition[1]-targetPosRelative[1],
-									nil,
-									enemyPosition[3]-targetPosRelative[3],
-								}
-								else
-									targetPosAbsolute = {
-									enemyPosition[1]+targetPosRelative[1],
-									nil,
-									enemyPosition[3]+targetPosRelative[3],
-								}
+							
+							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							if not(closestShieldDistance)then
+								closestShieldDistance = enemyShieldDistance
 							end
-							targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-							GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-							return
+							
+							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+								closestShieldDistance = enemyShieldDistance
+								closestShieldID = units[i]
+								closestShieldRadius = targetShieldRadius
+								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
+							end
 						end
 					end
-				end
+				end	
 			end
 		end
-		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+		if(closestShieldID ~= nil)then
+			local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(closestShieldID)
+			local targetPosRelative={
+				sin(rotation) * (closestShieldRadius-14),
+				nil,
+				cos(rotation) * (closestShieldRadius-14),
+			}
+
+			local targetPosAbsolute = {}
+			if (self.pos[3]<=enemyPositionZ) then
+				targetPosAbsolute = {
+					enemyPositionX-targetPosRelative[1],
+					nil,
+					enemyPositionZ-targetPosRelative[3],
+				}
+				else
+					targetPosAbsolute = {
+					enemyPositionX+targetPosRelative[1],
+					nil,
+					enemyPositionZ+targetPosRelative[3],
+				}
+			end
+			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
+			GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
+		else
+			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+		end
 	end,
 	
 	isEnemyInEffectiveRange = function (self)
@@ -247,9 +263,9 @@ local SweeperController = {
 								cos(rotation) * (self.range+max(0,(self.pos[2]-enemyPosition[2])/3)-10+120*ping*cos(abs(heading-rotation))),
 							}
 							testTargetPosRelative = {
-								sin(rotation)*(self.range-80+120*ping*cos(abs(heading-rotation))),
+								sin(rotation)*(self.range-40+120*ping*cos(abs(heading-rotation))),
 								nil,
-								cos(rotation)*(self.range-80+120*ping*cos(abs(heading-rotation))),
+								cos(rotation)*(self.range-40+120*ping*cos(abs(heading-rotation))),
 							}
 						else
 							targetPosRelative={
@@ -258,9 +274,9 @@ local SweeperController = {
 								cos(rotation) * (self.range+max(0,(self.pos[2]-enemyPosition[2])/3)-10-120*ping*cos(abs(heading-rotation))),
 							}
 							testTargetPosRelative = {
-								sin(rotation)*(self.range-80-120*ping*cos(abs(heading-rotation))),
+								sin(rotation)*(self.range-40-120*ping*cos(abs(heading-rotation))),
 								nil,
-								cos(rotation)*(self.range-80-120*ping*cos(abs(heading-rotation))),
+								cos(rotation)*(self.range-40-120*ping*cos(abs(heading-rotation))),
 							}
 						end
 					else
@@ -270,9 +286,9 @@ local SweeperController = {
 							cos(rotation) * (self.range+max(0,(self.pos[2]-enemyPosition[2])/3)-8),
 						}
 						testTargetPosRelative = {
-							sin(rotation)*(self.range-70),
+							sin(rotation)*(self.range-40),
 							nil,
-							cos(rotation)*(self.range-70),
+							cos(rotation)*(self.range-40),
 						}
 					end
 					
@@ -305,7 +321,7 @@ local SweeperController = {
 					end
 					targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 					testTargetPosAbsolute[2]= GetGroundHeight(testTargetPosAbsolute[1],testTargetPosAbsolute[3])
-					local friendlies = #GetUnitsInSphere(testTargetPosAbsolute[1], testTargetPosAbsolute[2], testTargetPosAbsolute[3], 180, self.allyTeamID)
+					local friendlies = #GetUnitsInSphere(testTargetPosAbsolute[1], testTargetPosAbsolute[2], testTargetPosAbsolute[3], 220, self.allyTeamID)
 					if (friendlies==0)then
 						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
 						return true
@@ -520,7 +536,11 @@ local SweeperController = {
 	end
 }
 
-
+function distance ( x1, y1, x2, y2 )
+  local dx = (x1 - x2)
+  local dy = (y1 - y2)
+  return sqrt ( dx * dx + dy * dy )
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		if (UnitDefs[unitDefID].name==Reaver_NAME)

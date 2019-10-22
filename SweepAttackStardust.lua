@@ -1,7 +1,7 @@
 function widget:GetInfo()
    return {
       name         = "SweepAttackStardust",
-      desc         = "attempt to make Stardust sweep area with flame to search for stealthy units. Version 1,06",
+      desc         = "attempt to make Stardust sweep area with flame to search for stealthy units. Version 1.1",
       author       = "terve886",
       date         = "2019",
       license      = "PD", -- should be compatible with Spring
@@ -16,6 +16,7 @@ local sin = math.sin
 local cos = math.cos
 local atan = math.atan
 local max = math.max
+local sqrt = math.sqrt
 local UPDATE_FRAME=10
 local SweeperStack = {}
 local GetUnitHeading = Spring.GetUnitHeading
@@ -221,6 +222,8 @@ local SweeperController = {
 	end,
 	
 	isShieldInEffectiveRange = function (self)
+		closestShieldID = nil
+		closestShieldDistance = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
@@ -229,47 +232,58 @@ local SweeperController = {
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPosition = {GetUnitPosition(units[i])}
-							local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
+							local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
 							
 							local targetShieldRadius
-							local targetShieldHealth
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-								
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-				
-							local targetPosRelative={
-								sin(rotation) * (targetShieldRadius-14),
-								nil,
-								cos(rotation) * (targetShieldRadius-14),
-							}
-				
-							local targetPosAbsolute = {}
-							if (self.pos[3]<=enemyPosition[3]) then
-								targetPosAbsolute = {
-									enemyPosition[1]-targetPosRelative[1],
-									nil,
-									enemyPosition[3]-targetPosRelative[3],
-								}
-								else
-									targetPosAbsolute = {
-									enemyPosition[1]+targetPosRelative[1],
-									nil,
-									enemyPosition[3]+targetPosRelative[3],
-								}
+							
+							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							if not(closestShieldDistance)then
+								closestShieldDistance = enemyShieldDistance
 							end
-							targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-							GiveOrderToUnit(self.unitID,CMD_ATTACK, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-							return
+							
+							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+								closestShieldDistance = enemyShieldDistance
+								closestShieldID = units[i]
+								closestShieldRadius = targetShieldRadius
+								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
+							end
 						end
 					end
-				end
+				end	
 			end
 		end
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		if(closestShieldID)then
+			local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(closestShieldID)
+			local targetPosRelative={
+				sin(rotation) * (closestShieldRadius-14),
+				nil,
+				cos(rotation) * (closestShieldRadius-14),
+			}
+
+			local targetPosAbsolute = {}
+			if (self.pos[3]<=enemyPositionZ) then
+				targetPosAbsolute = {
+					enemyPositionX-targetPosRelative[1],
+					nil,
+					enemyPositionZ-targetPosRelative[3],
+				}
+				else
+					targetPosAbsolute = {
+					enemyPositionX+targetPosRelative[1],
+					nil,
+					enemyPositionZ+targetPosRelative[3],
+				}
+			end
+			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
+			GiveOrderToUnit(self.unitID,CMD_ATTACK, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
+		else
+			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		end
 	end,
 	
 	handle=function(self)
@@ -292,7 +306,11 @@ local SweeperController = {
 	end
 }
 
-
+function distance ( x1, y1, x2, y2 )
+  local dx = (x1 - x2)
+  local dy = (y1 - y2)
+  return sqrt ( dx * dx + dy * dy )
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		if (UnitDefs[unitDefID].name==Stardust_NAME)
