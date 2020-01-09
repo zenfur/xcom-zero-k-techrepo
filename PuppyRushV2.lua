@@ -1,14 +1,14 @@
 function widget:GetInfo()
-   return {
-    name      = "PuppyRushV2",
-    desc      = "Makes puppies shoot temselves towards enemy when enemy is close. Version 0,5",
-    author    = "terve886",
-    date      = "2019",
-    license   = "PD", -- should be compatible with Spring
-    layer     = 2,
-	handler		= true, --for adding customCommand into UI
-    enabled   = true  --  loaded by default?
-  }
+	return {
+		name      = "PuppyRushV2",
+		desc      = "Makes puppies shoot temselves towards enemy when enemy is close. Version 1.2",
+		author    = "terve886",
+		date      = "2019",
+		license   = "PD", -- should be compatible with Spring
+		layer     = 2,
+		handler		= true, --for adding customCommand into UI
+		enabled   = true  --  loaded by default?
+	}
 end
 
 local pi = math.pi
@@ -35,10 +35,11 @@ local GetUnitDefID = Spring.GetUnitDefID
 local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local IsUnitSelected = Spring.IsUnitSelected
-local GetUnitVelocity  = Spring.GetUnitVelocity 
+local GetUnitVelocity  = Spring.GetUnitVelocity
 local GetUnitHeading = Spring.GetUnitHeading
 local GetPlayerInfo = Spring.GetPlayerInfo
 local GetMyPlayerID = Spring.GetMyPlayerID
+local GetUnitArmored = Spring.GetUnitArmored
 local myPlayerID = GetMyPlayerID()
 local ping = 0
 local ENEMY_DETECT_BUFFER  = 74
@@ -77,9 +78,9 @@ local cmdRush = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes Puppy rocket rush enemies that get close.',
 	action  = 'oneclickwep',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 local cmdRushProduction = {
@@ -87,9 +88,9 @@ local cmdRushProduction = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Global toggle to Puppies starting with PuppyRush',
 	action  = 'oneclickwep',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
@@ -102,8 +103,8 @@ local RushController = {
 	attackActive = 0,
 	target = nil,
 	forceTarget,
-	
-	
+
+
 	new = function(self, unitID)
 		--Echo("RushController added:" .. unitID)
 		self = deepcopy(self)
@@ -119,27 +120,27 @@ local RushController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		Echo("PuppyRush ON!")
 		self.toggle = true
 	end,
-	
+
 	toggleOff = function (self)
 		Echo("PuppyRush off")
 		self.toggle = false
 		GiveOrderToUnit(self.unitID, CMD_REMOVE, { CMD_ATTACK },{'alt'});
 	end,
-	
-	
+
+
 	getJumpCount = function(self)
 		local hp = GetUnitHealth(self.unitID)
 		if hp then
@@ -152,30 +153,17 @@ local RushController = {
 		end
 		return 0
 	end,
-	
-	isEnemyInRange = function (self)
-		local unitID = GetUnitNearestEnemy(self.unitID, self.range+100*ping)
-		if (unitID)then
-			if  (GetUnitIsDead(unitID) == false) then
-				if not(self.target == unitID)then
-					GiveOrderToUnit(self.unitID, CMD_ATTACK, unitID, 0)	
-					self.target = unitID						
-				end
-				return true
-			end
-			return false
-		end
-	end,
-	
+
+
 	isEnemyInRangeV2 = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+100*ping)
-		
+
 		for i=1, #units do
 			if(self.target==units[i])then
 				return true
 			end
 		end
-	
+
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
@@ -183,8 +171,10 @@ local RushController = {
 					target = units[i]
 					DefID = GetUnitDefID(target)
 					if(DefID)then
-						if (target==self.forceTarget or (GetUnitHealth(target) and GetUnitHealth(target)<=PuppyDamage and UnitDefs[DefID].metalCost > 51))then
-							GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)	
+						hp, mxhp, _, _, bp = GetUnitHealth(units[i])
+						local hasArmor = GetUnitArmored(units[i])
+						if (target==self.forceTarget or (GetUnitHealth(target) and GetUnitHealth(target)<=PuppyDamage and UnitDefs[DefID].metalCost > 51 and hasArmor == false and bp>0.8))then
+							GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)
 							self.target = target
 							return true
 						end
@@ -193,14 +183,14 @@ local RushController = {
 			end
 		end
 		if(target)then
-			GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)	
+			GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)
 			self.target = target
 			return true
 		else
 			return false
 		end
 	end,
-	
+
 	isEnemyInRushRange = function (self)
 		if(self.attackActive<currentFrame)then
 			local jumps = self:getJumpCount()
@@ -210,7 +200,9 @@ local RushController = {
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					DefID = GetUnitDefID(units[i])
 					if not(DefID == nil)then
-						if  (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].metalCost > 51 and not(UnitDefs[DefID].name==Swift_NAME or UnitDefs[DefID].name==Owl_NAME)) then
+						hp, mxhp, _, _, bp = GetUnitHealth(units[i])
+						local hasArmor = GetUnitArmored(units[i])
+						if  (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].metalCost > 51 and bp > 0.8 and hasArmor == false and not(UnitDefs[DefID].name==Swift_NAME or UnitDefs[DefID].name==Owl_NAME)) then
 							target = units[i]
 							if (target==self.forceTarget)then
 								break
@@ -222,52 +214,52 @@ local RushController = {
 			if(target~=nil)then
 				local enemyPosition = {GetUnitPosition(target)}
 				local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
-				local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD	
+				local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
 				velocity = {GetUnitVelocity(self.unitID)}
-				
+
 				local targetPosRelative = {}
 				local targetPosRelative2 = {}
-						if(abs(velocity[1])+abs(velocity[3])>3)then
-							if(self.pos[3]<=enemyPosition[3])then
-								targetPosRelative={
-									sin(rotation) * (self.range-10+90*ping*cos(abs(heading-rotation))),
-									nil,
-									cos(rotation) * (self.range-10+90*ping*cos(abs(heading-rotation))),
-								}
-								targetPosRelative2={
-									sin(rotation) * (self.range+40+90*ping*cos(abs(heading-rotation))),
-									nil,
-									cos(rotation) * (self.range+40+90*ping*cos(abs(heading-rotation))),
-								}
-							else
-								targetPosRelative={
-									sin(rotation) * (self.range-10-90*ping*cos(abs(heading-rotation))),
-									nil,
-									cos(rotation) * (self.range-10-90*ping*cos(abs(heading-rotation))),
-								}
-								targetPosRelative2={
-									sin(rotation) * (self.range+40-90*ping*cos(abs(heading-rotation))),
-									nil,
-									cos(rotation) * (self.range+40-90*ping*cos(abs(heading-rotation))),
-								}
-							end
-						else
-							targetPosRelative={
-								sin(rotation) * (self.range-8),
-								nil,
-								cos(rotation) * (self.range-8),
-							}
-							
-							targetPosRelative2={
-								sin(rotation) * (self.range+40),
-								nil,
-								cos(rotation) * (self.range+40),
-							}
-						end
+				if(abs(velocity[1])+abs(velocity[3])>3)then
+					if(self.pos[3]<=enemyPosition[3])then
+						targetPosRelative={
+							sin(rotation) * (self.range-10+90*ping*cos(abs(heading-rotation))),
+							nil,
+							cos(rotation) * (self.range-10+90*ping*cos(abs(heading-rotation))),
+						}
+						targetPosRelative2={
+							sin(rotation) * (self.range+40+90*ping*cos(abs(heading-rotation))),
+							nil,
+							cos(rotation) * (self.range+40+90*ping*cos(abs(heading-rotation))),
+						}
+					else
+						targetPosRelative={
+							sin(rotation) * (self.range-10-90*ping*cos(abs(heading-rotation))),
+							nil,
+							cos(rotation) * (self.range-10-90*ping*cos(abs(heading-rotation))),
+						}
+						targetPosRelative2={
+							sin(rotation) * (self.range+40-90*ping*cos(abs(heading-rotation))),
+							nil,
+							cos(rotation) * (self.range+40-90*ping*cos(abs(heading-rotation))),
+						}
+					end
+				else
+					targetPosRelative={
+						sin(rotation) * (self.range-8),
+						nil,
+						cos(rotation) * (self.range-8),
+					}
+
+					targetPosRelative2={
+						sin(rotation) * (self.range+40),
+						nil,
+						cos(rotation) * (self.range+40),
+					}
+				end
 
 				local targetPosAbsolute = {}
 				local movePosAbsolute = {}
-				
+
 				if (self.pos[3]<=enemyPosition[3]) then
 					targetPosAbsolute = {
 						self.pos[1]+targetPosRelative[1],
@@ -294,7 +286,7 @@ local RushController = {
 				targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 				movePosAbsolute[2]= GetGroundHeight(movePosAbsolute[1],movePosAbsolute[3])
 				GiveOrderToUnit(self.unitID, CMD_ATTACK, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-				
+
 				GiveOrderToUnit(self.unitID, CMD_INSERT,{1, CMD_RAW_MOVE, CMD_OPT_SHIFT, movePosAbsolute[1], movePosAbsolute[2], movePosAbsolute[3]}, {"alt"})
 				self.attackActive = currentFrame+14
 				return true
@@ -304,13 +296,13 @@ local RushController = {
 			end
 		end
 	end,
-	
+
 	orderStop=function(self)
 		if(self.attackActive == currentFrame)then
 			GiveOrderToUnit(self.unitID, CMD_REMOVE, { CMD_ATTACK },{'alt'});
 		end
 	end,
-	
+
 	handle=function(self)
 		if (self.toggle) then
 			self:orderStop()
@@ -336,19 +328,19 @@ end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Puppy_NAME)
-	and (unitTeam==GetMyTeamID()) then
+			and (unitTeam==GetMyTeamID()) then
 		PuppyStack[unitID] = RushController:new(unitID);
 	end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 	if (UnitDefs[unitDefID].name==Puppy_NAME)
-		and not PuppyStack[unitID] then
+			and not PuppyStack[unitID] then
 		PuppyStack[unitID] = RushController:new(unitID);
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (PuppyStack[unitID]==nil) then
 		PuppyStack[unitID]=PuppyStack[unitID]:unset();
 	end
@@ -365,18 +357,18 @@ end
 
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weaponDefID, projectileID, attackerID, attackerDefID, attackerTeam)
