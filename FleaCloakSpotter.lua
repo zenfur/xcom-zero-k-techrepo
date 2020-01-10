@@ -169,10 +169,7 @@ function widget:Initialize()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
 		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].canCloak==true or UnitDefs[DefID].name==Flea_NAME 
-		or UnitDefs[DefID].name==Blastwing_NAME 
-		or UnitDefs[DefID].name==Snitch_NAME 
-		or UnitDefs[DefID].name==Imp_NAME) then
+		if (UnitDefs[DefID].name==Flea_NAME) then
 			if  (CloakerStack[units[i]]==nil) then
 				CloakerStack[units[i]]=CloakToCloakSpotAI:new(units[i])
 			end
