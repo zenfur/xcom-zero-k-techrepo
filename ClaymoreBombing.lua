@@ -204,7 +204,7 @@ local transportController = {
 	end
 }
 
-function widget:UnitFinished(unitID, unitDefID, unitTeam)
+function widget:UnitCreated(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
 			and (unitTeam==GetMyTeamID()) then
 		TransporterStack[unitID] = transportController:new(unitID);
