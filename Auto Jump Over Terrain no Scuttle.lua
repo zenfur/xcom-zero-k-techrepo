@@ -22,6 +22,7 @@ local spGiveOrderArrayToUnitArray = Spring.GiveOrderArrayToUnitArray
 local spGetFeaturePosition = Spring.GetFeaturePosition
 local spGetUnitIsStunned = Spring.GetUnitIsStunned
 local spGetGameSeconds = Spring.GetGameSeconds
+local GetUnitIsCloaked = Spring.GetUnitIsCloaked
 ------------------------------------------------------------
 ------------------------------------------------------------
 local gaussUnitDefID = UnitDefNames["turretgauss"].id
@@ -130,6 +131,13 @@ function widget:GameFrame(n)
 							break; --a.k.a: Continue
 						end
 					end
+
+					--IS UNIT CLOAKED skip--
+					local cloakStatus = GetUnitIsCloaked(unitID)
+					if cloakStatus then
+						break; --a.k.a: Continue
+					end
+
 					--EXTRACT RELEVANT FIRST COMMAND --
 					local cmd_queue2
 					local unitIsAttacking
