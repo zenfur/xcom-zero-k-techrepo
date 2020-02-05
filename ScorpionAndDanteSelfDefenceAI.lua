@@ -67,7 +67,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 		self.cooldownFrame = currentFrame+400
 		self.maxHealth = UnitDefs[GetUnitDefID(self.unitID)].health
 		local unitDefID = GetUnitDefID(self.unitID)
-		self.reloadTime = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].reload
+		self.reloadTime = WeaponDefs[UnitDefs[unitDefID].weapons[3].weaponDef].reload
 		return self
 	end,
 
@@ -79,7 +79,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 	
 	isThreatInRange = function (self)
 		if(GetUnitHealth(self.unitID)<self.maxHealth*0.3)then --is Health Critical?
-			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 2, "reloadState") <= currentFrame)then --Health is critical
+			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then --Health is critical
 				self.pos = {GetUnitPosition(self.unitID)}
 				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
 				for i=1, #units do
