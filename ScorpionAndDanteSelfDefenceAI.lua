@@ -104,7 +104,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 				end
 			end
 		else --Health is not critical
-		if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 2, "reloadState") <= currentFrame)then
+		if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then
 				self.pos = {GetUnitPosition(self.unitID)}
 				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
 				for i=1, #units do
