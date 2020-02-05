@@ -28,6 +28,7 @@ local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
+local IsUnitInLos = Spring.IsUnitInLos
 local ENEMY_DETECT_BUFFER  = 40
 local Echo = Spring.Echo
 local Phantom_NAME = "cloaksnipe"
@@ -95,32 +96,50 @@ local PhantomController = {
 		end
 		return false
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					enemyPosition = {GetUnitPosition(units[i])}
-					if(enemyPosition[2]>-30)then
-						if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-							GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
-							return true
-						end
+				enemyPosition = {GetUnitPosition(units[i])}
+				if(enemyPosition[2]>-30)then
+					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
+						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
+						return true
+					end
+
 					DefID = GetUnitDefID(units[i])
 					if not(DefID == nil)then
-						if  (GetUnitIsDead(units[i]) == false)then
-							local hasArmor = GetUnitArmored(units[i])
-							if  (UnitDefs[DefID].metalCost >= 200 and 
-							not((UnitDefs[DefID].name == Razor_NAME 
-							or UnitDefs[DefID].name == Gauss_NAME
-							or UnitDefs[DefID].name == Faraday_NAME
-							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor)) then
-								if (target == nil) then
-									target = units[i]
+						if(IsUnitInLos(units[i]))then --Radar dots always return armor state as false
+							if  (GetUnitIsDead(units[i]) == false)then
+								local hasArmor = GetUnitArmored(units[i])
+								if  (UnitDefs[DefID].metalCost >= 200 and
+										not((UnitDefs[DefID].name == Razor_NAME
+												or UnitDefs[DefID].name == Gauss_NAME
+												or UnitDefs[DefID].name == Faraday_NAME
+												or UnitDefs[DefID].name == Halbert_NAME) and hasArmor)) then
+									if (target == nil) then
+										target = units[i]
+									end
+									if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
+										target = units[i]
+									end
 								end
-								if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
-									target = units[i]
+							end
+						else
+							if  (GetUnitIsDead(units[i]) == false)then
+								if  (UnitDefs[DefID].metalCost >= 200 and
+										not((UnitDefs[DefID].name == Razor_NAME
+												or UnitDefs[DefID].name == Gauss_NAME
+												or UnitDefs[DefID].name == Faraday_NAME
+												or UnitDefs[DefID].name == Halbert_NAME))) then
+									if (target == nil) then
+										target = units[i]
+									end
+									if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
+										target = units[i]
+									end
 								end
 							end
 						end
