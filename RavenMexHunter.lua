@@ -36,6 +36,7 @@ local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitStates = Spring.GetUnitStates
 local GetUnitMoveTypeData = Spring.GetUnitMoveTypeData
 local GetUnitWeaponState = Spring.GetUnitWeaponState
+local GetUnitRulesParam = Spring.GetUnitRulesParam
 local ENEMY_DETECT_BUFFER  = 74
 local Echo = Spring.Echo
 local initDone = false
@@ -89,7 +90,7 @@ local MexHuntController = {
 
 
 	handle = function(self)
-		if (self.hunting)then
+		if (self.hunting and GetUnitRulesParam(self.unitID, "noammo")==0)then
 			self.pos = {GetUnitPosition(self.unitID)}
 			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
 			for i=1, #units do
