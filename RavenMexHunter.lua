@@ -37,6 +37,7 @@ local GetUnitStates = Spring.GetUnitStates
 local GetUnitMoveTypeData = Spring.GetUnitMoveTypeData
 local GetUnitWeaponState = Spring.GetUnitWeaponState
 local GetUnitRulesParam = Spring.GetUnitRulesParam
+local GetUnitFuel = Spring.GetUnitFuel
 local ENEMY_DETECT_BUFFER  = 74
 local Echo = Spring.Echo
 local initDone = false
@@ -67,6 +68,7 @@ local MexHuntController = {
 	allyTeamID = GetMyAllyTeamID(),
 	target,
 	hunting = false,
+	initilised = false,
 
 
 	new = function(self, unitID)
@@ -90,7 +92,8 @@ local MexHuntController = {
 
 
 	handle = function(self)
-		if (self.hunting and GetUnitRulesParam(self.unitID, "noammo")==0)then
+		ammoState = GetUnitRulesParam(self.unitID, "noammo")
+		if (self.hunting and (ammoState==0 or ammoState==nil))then
 			self.pos = {GetUnitPosition(self.unitID)}
 			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
 			for i=1, #units do
@@ -136,8 +139,7 @@ end
 function widget:GameFrame(n)
 	currentFrame = n
 	if (n%UPDATE_FRAME==0) then
-
-		for _,raven in pairs(RavenStack) do
+		for unitID,raven in pairs(RavenStack) do
 			raven:handle()
 		end
 	end
