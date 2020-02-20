@@ -174,8 +174,11 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_LAND_ATTACK and #params == 3)then
 			for i=1, #selectedTHunderbirds do
 				if(TBStack[selectedTHunderbirds[i]])then
-					TBStack[selectedTHunderbirds[i]]:setTargetParams(params)
-					TBStack[selectedTHunderbirds[i]]:landAttack()
+					ammoState = GetUnitRulesParam(selectedTHunderbirds[i], "noammo")
+					if (ammoState==0 or ammoState==nil)then
+						TBStack[selectedTHunderbirds[i]]:setTargetParams(params)
+						TBStack[selectedTHunderbirds[i]]:landAttack()
+					end
 				end
 			end
 			return true
