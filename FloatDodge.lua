@@ -83,28 +83,25 @@ local FloatController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
 
-	
+
+
 	handle=function(self)
-		if(GetUnitWeaponState(self.unitID, 1, "reloadState") <= currentFrame)then
+		--local CMDDescID = Spring.FindUnitCmdDesc(self.unitID, CMD_UNIT_FLOAT_STATE)
+		--if CMDDescID then
+		--local cmdDesc = Spring.GetUnitCmdDescs(self.unitID, CMDDescID, CMDDescID)
+		--local nparams = cmdDesc[1].params
+		--if(nparams[1]~="2")then
+		if(GetUnitWeaponState(self.unitID, 1, "reloadState") <= currentFrame+12)then
 			GiveOrderToUnit(self.unitID,CMD_UNIT_FLOAT_STATE, 1, 0)
 		else
 			GiveOrderToUnit(self.unitID,CMD_UNIT_FLOAT_STATE, 0, 0)
 		end
+		--end
+		--end
 	end
 }
 
-function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
-	if (UnitDefs[unitDefID].name == Buyo_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
-		for _,Buyo in pairs(BuyoStack) do
-			if(Buyo.unitID == unitID)then
-				Buyo:setForceTarget(cmdParams)
-				return
-			end
-		end
-	end
-end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Buyo_NAME)
