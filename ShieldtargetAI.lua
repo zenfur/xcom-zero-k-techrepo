@@ -72,6 +72,7 @@ local GetSpecState = Spring.GetSpectatingState
 local FULL_CIRCLE_RADIANT = 2 * pi
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
+local CMD_UNIT_SET_TARGET_CIRCLE = 34925
 local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
 
@@ -91,6 +92,7 @@ local ShieldTargettingController = {
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
+		self.drec = false
 		local unitDefID = GetUnitDefID(self.unitID)
 		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
 		local wd = WeaponDefs[weaponDefID]
@@ -104,7 +106,9 @@ local ShieldTargettingController = {
 
 	unset = function(self)
 		--Echo("ShieldTargettingController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		if not self.drec then
+			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		end
 		return nil
 	end,
 
@@ -196,6 +200,9 @@ local ShieldTargettingController = {
 
 
 	handle=function(self)
+		if self.drec then
+			return
+		end
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			self.pos = {GetUnitPosition(self.unitID)}
 			if(self:isEnemyInRange()) then
@@ -222,6 +229,7 @@ local BuildingShieldTargettingController = {
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
+		self.drec = false
 		local unitDefID = GetUnitDefID(self.unitID)
 		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
 		local wd = WeaponDefs[weaponDefID]
@@ -231,7 +239,9 @@ local BuildingShieldTargettingController = {
 
 	unset = function(self)
 		--Echo("ShieldTargettingController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		if not self.drec then
+			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		end
 		return nil
 	end,
 
@@ -322,6 +332,9 @@ local BuildingShieldTargettingController = {
 
 
 	handle=function(self)
+		if self.drec then
+			return
+		end
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			if(self:isEnemyInRange()) then
 				return
@@ -379,6 +392,20 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
+function widget:CommandNotify(id, params, options)
+	local selectedUnits = Spring.GetSelectedUnits()
+	for _, unitID in pairs(selectedUnits) do	-- check selected units...
+		if UnitStack[unitID] then	--  was issued to one of our units.
+			if id == CMD_UNIT_SET_TARGET or id == CMD_UNIT_SET_TARGET_CIRCLE then
+				-- Direct order to set a priority target
+				UnitStack[unitID].drec = true
+			elseif id == CMD_STOP or id == CMD_UNIT_CANCEL_TARGET then
+				-- Cancel direct order
+				UnitStack[unitID].drec = false
+			end
+		end
+	end
+end
 
 function widget:UnitDestroyed(unitID)
 	if not (UnitStack[unitID]==nil) then
