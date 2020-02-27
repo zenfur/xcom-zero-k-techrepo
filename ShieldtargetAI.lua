@@ -126,12 +126,14 @@ local ShieldTargettingController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
+		local closestShieldRadius = nil
+		local rotation = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
@@ -145,7 +147,7 @@ local ShieldTargettingController = {
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
@@ -169,15 +171,15 @@ local ShieldTargettingController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
 					nil,
 					enemyPositionZ-targetPosRelative[3],
 				}
-				else
-					targetPosAbsolute = {
+			else
+				targetPosAbsolute = {
 					enemyPositionX+targetPosRelative[1],
 					nil,
 					enemyPositionZ+targetPosRelative[3],
@@ -252,12 +254,14 @@ local BuildingShieldTargettingController = {
 
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
+		local closestShieldRadius = nil
+		local rotation = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
@@ -271,7 +275,7 @@ local BuildingShieldTargettingController = {
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
@@ -295,15 +299,15 @@ local BuildingShieldTargettingController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
 					nil,
 					enemyPositionZ-targetPosRelative[3],
 				}
-				else
-					targetPosAbsolute = {
+			else
+				targetPosAbsolute = {
 					enemyPositionX+targetPosRelative[1],
 					nil,
 					enemyPositionZ+targetPosRelative[3],
