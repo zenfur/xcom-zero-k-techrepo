@@ -72,25 +72,22 @@ local GetSpecState = Spring.GetSpectatingState
 local FULL_CIRCLE_RADIANT = 2 * pi
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
+local CMD_UNIT_SET_TARGET_CIRCLE = 34925
 local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
 
 
 local ShieldTargettingController = {
-	unitID,
-	pos,
 	allyTeamID = GetMyAllyTeamID(),
-	range,
 	enemyNear = false,
-	damage,
-	
-	
-	
+	extra_range = 0,
+
 	new = function(self, unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
+		self.drec = false
 		local unitDefID = GetUnitDefID(self.unitID)
 		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
 		local wd = WeaponDefs[weaponDefID]
@@ -104,18 +101,20 @@ local ShieldTargettingController = {
 
 	unset = function(self)
 		--Echo("ShieldTargettingController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		if not self.drec then
+			self:stop()
+		end
 		return nil
 	end,
-	
+
 	isEnemyInRange = function (self)
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range + self.extra_range)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
 					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-						self.enemyNear = true						
+						self:stop()
+						self.enemyNear = true
 					end
 					return true
 				end
@@ -124,32 +123,34 @@ local ShieldTargettingController = {
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
+		local closestShieldRadius = nil
+		local rotation = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+
+							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -158,7 +159,7 @@ local ShieldTargettingController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -169,31 +170,40 @@ local ShieldTargettingController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
 					nil,
 					enemyPositionZ-targetPosRelative[3],
 				}
-				else
-					targetPosAbsolute = {
+			else
+				targetPosAbsolute = {
 					enemyPositionX+targetPosRelative[1],
 					nil,
 					enemyPositionZ+targetPosRelative[3],
 				}
 			end
 			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-			GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
+			self:fire(targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3])
 		else
-			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+			self:stop()
 		end
 	end,
-	
-	
-	
-	
+
+	stop=function(self)
+		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+	end,
+	fire=function(self, x, y, z)
+		GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {x, y, z}, 0)
+	end,
+
+
+
 	handle=function(self)
+		if self.drec then
+			return
+		end
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			self.pos = {GetUnitPosition(self.unitID)}
 			if(self:isEnemyInRange()) then
@@ -205,124 +215,19 @@ local ShieldTargettingController = {
 }
 
 local BuildingShieldTargettingController = {
-	unitID,
-	pos,
-	allyTeamID = GetMyAllyTeamID(),
-	range,
-	enemyNear = false,
-	damage,
-	
-	
-	
 	new = function(self, unitID)
-		--Echo("BuildingShieldTargettingController added:" .. unitID)
-		self = deepcopy(self)
-		self.unitID = unitID
-		self.range = GetUnitMaxRange(self.unitID)
-		self.pos = {GetUnitPosition(self.unitID)}
-		local unitDefID = GetUnitDefID(self.unitID)
-		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
-		local wd = WeaponDefs[weaponDefID]
-		self.damage = wd.damages[4]
-		return self
-	end,
-
-	unset = function(self)
-		--Echo("ShieldTargettingController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
-		return nil
-	end,
-	
-	isEnemyInRange = function (self)
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+14)
-		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				if  (GetUnitIsDead(units[i]) == false) then
-					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""}, 1)	
-						self.enemyNear = true						
-					end
-					return true
-				end
-			end
-		end
-		self.enemyNear = false
-		return false
-	end,
-	
-	
-	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
-		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
-							
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
-							
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-							end
-							
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
-						end
-					end
-				end	
-			end
-		end
-		if(closestShieldID)then
-			local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(closestShieldID)
-			local targetPosRelative={
-				sin(rotation) * (closestShieldRadius-14),
-				nil,
-				cos(rotation) * (closestShieldRadius-14),
-			}
-
-			local targetPosAbsolute = {}
-			if (self.pos[3]<=enemyPositionZ) then
-				targetPosAbsolute = {
-					enemyPositionX-targetPosRelative[1],
-					nil,
-					enemyPositionZ-targetPosRelative[3],
-				}
-				else
-					targetPosAbsolute = {
-					enemyPositionX+targetPosRelative[1],
-					nil,
-					enemyPositionZ+targetPosRelative[3],
-				}
-			end
-			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-			GiveOrderToUnit(self.unitID,CMD_ATTACK, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-		else
+		self = ShieldTargettingController:new(self, unitID)
+		self.extra_range = 14
+		self.stop = function(self)
 			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		end
-	end,
-	
-	
-	handle=function(self)
-		if(GetUnitStates(self.unitID).firestate~=0)then
-			if(self:isEnemyInRange()) then
-				return
-			end
-			self:isShieldInEffectiveRange()
+		self.fire = function(self, x, y, z)
+			GiveOrderToUnit(self.unitID,CMD_ATTACK, {x, y, z}, 0)
+		end
+		local baseIsEnemyInRange = self.IsEnemyInRange
+		self.IsEnemyInRange = function()
+			self.pos = {GetUnitPosition(self.unitID)}
+			return baseIsEnemyInRange()
 		end
 	end
 }
@@ -335,16 +240,16 @@ end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].isBuilding == false)then
-		if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(unitID) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME 
-			or UnitDefs[unitDefID].name==Scythe_NAME 
-			or UnitDefs[unitDefID].name==Phoenix_NAME 
-			or UnitDefs[unitDefID].name==Raven_NAME  
-			or UnitDefs[unitDefID].name==Ogre_NAME 
-			or UnitDefs[unitDefID].name==Reaver_NAME 
-			or UnitDefs[unitDefID].name==Kodachi_NAME 
+		if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(unitID) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
+			or UnitDefs[unitDefID].name==Scythe_NAME
+			or UnitDefs[unitDefID].name==Phoenix_NAME
+			or UnitDefs[unitDefID].name==Raven_NAME
+			or UnitDefs[unitDefID].name==Ogre_NAME
+			or UnitDefs[unitDefID].name==Reaver_NAME
+			or UnitDefs[unitDefID].name==Kodachi_NAME
 			or UnitDefs[unitDefID].name==Moderator_NAME
 			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME 
+			or UnitDefs[unitDefID].name==Venom_NAME
 			or UnitDefs[unitDefID].name==Bandit_NAME
 			or UnitDefs[unitDefID].name==Scorcher_NAME
 			or UnitDefs[unitDefID].name==Redback_NAME
@@ -363,7 +268,7 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 			or UnitDefs[unitDefID].name==Felon_NAME
 			or UnitDefs[unitDefID].name==Dirtbag_NAME
 			or UnitDefs[unitDefID].name==Scalpel_NAME
-			or string.match(UnitDefs[unitDefID].name, "dyn") 
+			or string.match(UnitDefs[unitDefID].name, "dyn")
 			or UnitDefs[unitDefID].name==Locust_NAME
 			or UnitDefs[unitDefID].name==Ripper_NAME)) then
 				UnitStack[unitID] = ShieldTargettingController:new(unitID);
@@ -375,14 +280,28 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
+function widget:CommandNotify(id, params, options)
+	local selectedUnits = Spring.GetSelectedUnits()
+	for _, unitID in pairs(selectedUnits) do	-- check selected units...
+		if UnitStack[unitID] then	--  was issued to one of our units.
+			if id == CMD_UNIT_SET_TARGET or id == CMD_UNIT_SET_TARGET_CIRCLE then
+				-- Direct order to set a priority target
+				UnitStack[unitID].drec = true
+			elseif id == CMD_STOP or id == CMD_UNIT_CANCEL_TARGET then
+				-- Cancel direct order
+				UnitStack[unitID].drec = false
+			end
+		end
+	end
+end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (UnitStack[unitID]==nil) then
 		UnitStack[unitID]=UnitStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,unit in pairs(UnitStack) do
 			unit:handle()
@@ -420,18 +339,18 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		unitDefID = GetUnitDefID(units[i])
+		local unitDefID = GetUnitDefID(units[i])
 		if (UnitDefs[unitDefID].isBuilding == false)then
-			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME 
-			or UnitDefs[unitDefID].name==Scythe_NAME 
-			or UnitDefs[unitDefID].name==Phoenix_NAME 
-			or UnitDefs[unitDefID].name==Raven_NAME  
-			or UnitDefs[unitDefID].name==Ogre_NAME 
-			or UnitDefs[unitDefID].name==Reaver_NAME 
-			or UnitDefs[unitDefID].name==Kodachi_NAME 
+			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
+			or UnitDefs[unitDefID].name==Scythe_NAME
+			or UnitDefs[unitDefID].name==Phoenix_NAME
+			or UnitDefs[unitDefID].name==Raven_NAME
+			or UnitDefs[unitDefID].name==Ogre_NAME
+			or UnitDefs[unitDefID].name==Reaver_NAME
+			or UnitDefs[unitDefID].name==Kodachi_NAME
 			or UnitDefs[unitDefID].name==Moderator_NAME
 			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME 
+			or UnitDefs[unitDefID].name==Venom_NAME
 			or UnitDefs[unitDefID].name==Bandit_NAME
 			or UnitDefs[unitDefID].name==Scorcher_NAME
 			or UnitDefs[unitDefID].name==Redback_NAME
@@ -471,4 +390,3 @@ end
 function widget:PlayerChanged (playerID)
 	DisableForSpec()
 end
-
