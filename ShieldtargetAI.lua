@@ -420,7 +420,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		unitDefID = GetUnitDefID(units[i])
+		local unitDefID = GetUnitDefID(units[i])
 		if (UnitDefs[unitDefID].isBuilding == false)then
 			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
 			or UnitDefs[unitDefID].name==Scythe_NAME
