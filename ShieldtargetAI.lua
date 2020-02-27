@@ -83,9 +83,9 @@ local ShieldTargettingController = {
 	range,
 	enemyNear = false,
 	damage,
-	
-	
-	
+
+
+
 	new = function(self, unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
@@ -107,15 +107,15 @@ local ShieldTargettingController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
 					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-						self.enemyNear = true						
+						GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+						self.enemyNear = true
 					end
 					return true
 				end
@@ -124,7 +124,7 @@ local ShieldTargettingController = {
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
@@ -137,19 +137,19 @@ local ShieldTargettingController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
+
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -158,7 +158,7 @@ local ShieldTargettingController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -189,10 +189,10 @@ local ShieldTargettingController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		end
 	end,
-	
-	
-	
-	
+
+
+
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -211,9 +211,9 @@ local BuildingShieldTargettingController = {
 	range,
 	enemyNear = false,
 	damage,
-	
-	
-	
+
+
+
 	new = function(self, unitID)
 		--Echo("BuildingShieldTargettingController added:" .. unitID)
 		self = deepcopy(self)
@@ -232,15 +232,15 @@ local BuildingShieldTargettingController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+14)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
 					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""}, 1)	
-						self.enemyNear = true						
+						GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""}, 1)
+						self.enemyNear = true
 					end
 					return true
 				end
@@ -249,8 +249,8 @@ local BuildingShieldTargettingController = {
 		self.enemyNear = false
 		return false
 	end,
-	
-	
+
+
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
@@ -263,19 +263,19 @@ local BuildingShieldTargettingController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
+
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -284,7 +284,7 @@ local BuildingShieldTargettingController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID)then
@@ -315,8 +315,8 @@ local BuildingShieldTargettingController = {
 			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		end
 	end,
-	
-	
+
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			if(self:isEnemyInRange()) then
@@ -335,16 +335,16 @@ end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].isBuilding == false)then
-		if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(unitID) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME 
-			or UnitDefs[unitDefID].name==Scythe_NAME 
-			or UnitDefs[unitDefID].name==Phoenix_NAME 
-			or UnitDefs[unitDefID].name==Raven_NAME  
-			or UnitDefs[unitDefID].name==Ogre_NAME 
-			or UnitDefs[unitDefID].name==Reaver_NAME 
-			or UnitDefs[unitDefID].name==Kodachi_NAME 
+		if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(unitID) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
+			or UnitDefs[unitDefID].name==Scythe_NAME
+			or UnitDefs[unitDefID].name==Phoenix_NAME
+			or UnitDefs[unitDefID].name==Raven_NAME
+			or UnitDefs[unitDefID].name==Ogre_NAME
+			or UnitDefs[unitDefID].name==Reaver_NAME
+			or UnitDefs[unitDefID].name==Kodachi_NAME
 			or UnitDefs[unitDefID].name==Moderator_NAME
 			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME 
+			or UnitDefs[unitDefID].name==Venom_NAME
 			or UnitDefs[unitDefID].name==Bandit_NAME
 			or UnitDefs[unitDefID].name==Scorcher_NAME
 			or UnitDefs[unitDefID].name==Redback_NAME
@@ -363,7 +363,7 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 			or UnitDefs[unitDefID].name==Felon_NAME
 			or UnitDefs[unitDefID].name==Dirtbag_NAME
 			or UnitDefs[unitDefID].name==Scalpel_NAME
-			or string.match(UnitDefs[unitDefID].name, "dyn") 
+			or string.match(UnitDefs[unitDefID].name, "dyn")
 			or UnitDefs[unitDefID].name==Locust_NAME
 			or UnitDefs[unitDefID].name==Ripper_NAME)) then
 				UnitStack[unitID] = ShieldTargettingController:new(unitID);
@@ -376,13 +376,13 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 end
 
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (UnitStack[unitID]==nil) then
 		UnitStack[unitID]=UnitStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,unit in pairs(UnitStack) do
 			unit:handle()
@@ -422,16 +422,16 @@ function widget:Initialize()
 	for i=1, #units do
 		unitDefID = GetUnitDefID(units[i])
 		if (UnitDefs[unitDefID].isBuilding == false)then
-			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME 
-			or UnitDefs[unitDefID].name==Scythe_NAME 
-			or UnitDefs[unitDefID].name==Phoenix_NAME 
-			or UnitDefs[unitDefID].name==Raven_NAME  
-			or UnitDefs[unitDefID].name==Ogre_NAME 
-			or UnitDefs[unitDefID].name==Reaver_NAME 
-			or UnitDefs[unitDefID].name==Kodachi_NAME 
+			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
+			or UnitDefs[unitDefID].name==Scythe_NAME
+			or UnitDefs[unitDefID].name==Phoenix_NAME
+			or UnitDefs[unitDefID].name==Raven_NAME
+			or UnitDefs[unitDefID].name==Ogre_NAME
+			or UnitDefs[unitDefID].name==Reaver_NAME
+			or UnitDefs[unitDefID].name==Kodachi_NAME
 			or UnitDefs[unitDefID].name==Moderator_NAME
 			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME 
+			or UnitDefs[unitDefID].name==Venom_NAME
 			or UnitDefs[unitDefID].name==Bandit_NAME
 			or UnitDefs[unitDefID].name==Scorcher_NAME
 			or UnitDefs[unitDefID].name==Redback_NAME
@@ -471,4 +471,3 @@ end
 function widget:PlayerChanged (playerID)
 	DisableForSpec()
 end
-
