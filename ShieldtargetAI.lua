@@ -78,14 +78,9 @@ local CMD_ATTACK = CMD.ATTACK
 
 
 local ShieldTargettingController = {
-	unitID,
-	pos,
 	allyTeamID = GetMyAllyTeamID(),
-	range,
 	enemyNear = false,
-	damage,
-
-
+	extra_range = 0,
 
 	new = function(self, unitID)
 		self = deepcopy(self)
@@ -107,18 +102,18 @@ local ShieldTargettingController = {
 	unset = function(self)
 		--Echo("ShieldTargettingController removed:" .. self.unitID)
 		if not self.drec then
-			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+			self:stop()
 		end
 		return nil
 	end,
 
 	isEnemyInRange = function (self)
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range + self.extra_range)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
 					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+						self:stop()
 						self.enemyNear = true
 					end
 					return true
@@ -190,12 +185,18 @@ local ShieldTargettingController = {
 				}
 			end
 			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-			GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
+			self:fire(targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3])
 		else
-			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+			self:stop()
 		end
 	end,
 
+	stop=function(self)
+		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+	end,
+	fire=function(self, x, y, z)
+		GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {x, y, z}, 0)
+	end,
 
 
 
@@ -214,132 +215,19 @@ local ShieldTargettingController = {
 }
 
 local BuildingShieldTargettingController = {
-	unitID,
-	pos,
-	allyTeamID = GetMyAllyTeamID(),
-	range,
-	enemyNear = false,
-	damage,
-
-
-
 	new = function(self, unitID)
-		--Echo("BuildingShieldTargettingController added:" .. unitID)
-		self = deepcopy(self)
-		self.unitID = unitID
-		self.range = GetUnitMaxRange(self.unitID)
-		self.pos = {GetUnitPosition(self.unitID)}
-		self.drec = false
-		local unitDefID = GetUnitDefID(self.unitID)
-		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
-		local wd = WeaponDefs[weaponDefID]
-		self.damage = wd.damages[4]
-		return self
-	end,
-
-	unset = function(self)
-		--Echo("ShieldTargettingController removed:" .. self.unitID)
-		if not self.drec then
+		self = ShieldTargettingController:new(self, unitID)
+		self.extra_range = 14
+		self.stop = function(self)
 			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		end
-		return nil
-	end,
-
-	isEnemyInRange = function (self)
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+14)
-		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				if  (GetUnitIsDead(units[i]) == false) then
-					if (self.enemyNear == false)then
-						GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""}, 1)
-						self.enemyNear = true
-					end
-					return true
-				end
-			end
+		self.fire = function(self, x, y, z)
+			GiveOrderToUnit(self.unitID,CMD_ATTACK, {x, y, z}, 0)
 		end
-		self.enemyNear = false
-		return false
-	end,
-
-
-	isShieldInEffectiveRange = function (self)
-		local closestShieldID = nil
-		local closestShieldDistance = nil
-		local closestShieldRadius = nil
-		local rotation = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
-		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				local DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
-
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
-
-							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-							end
-
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
-						end
-					end
-				end
-			end
-		end
-		if(closestShieldID)then
-			local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(closestShieldID)
-			local targetPosRelative={
-				sin(rotation) * (closestShieldRadius-14),
-				nil,
-				cos(rotation) * (closestShieldRadius-14),
-			}
-
-			local targetPosAbsolute
-			if (self.pos[3]<=enemyPositionZ) then
-				targetPosAbsolute = {
-					enemyPositionX-targetPosRelative[1],
-					nil,
-					enemyPositionZ-targetPosRelative[3],
-				}
-			else
-				targetPosAbsolute = {
-					enemyPositionX+targetPosRelative[1],
-					nil,
-					enemyPositionZ+targetPosRelative[3],
-				}
-			end
-			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
-			GiveOrderToUnit(self.unitID,CMD_ATTACK, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-		else
-			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
-		end
-	end,
-
-
-	handle=function(self)
-		if self.drec then
-			return
-		end
-		if(GetUnitStates(self.unitID).firestate~=0)then
-			if(self:isEnemyInRange()) then
-				return
-			end
-			self:isShieldInEffectiveRange()
+		local baseIsEnemyInRange = self.IsEnemyInRange
+		self.IsEnemyInRange = function()
+			self.pos = {GetUnitPosition(self.unitID)}
+			return baseIsEnemyInRange()
 		end
 	end
 }
