@@ -291,6 +291,9 @@ local SweeperController = {
 			if(self:isEnemyInRange()) then
 				return
 			end
+			if(self:isEnemyInEffectiveRange())then
+				return
+			end
 			self:sweep()
 		else
 			if(GetUnitStates(self.unitID).firestate~=0)then
