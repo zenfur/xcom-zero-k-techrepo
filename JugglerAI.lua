@@ -104,31 +104,104 @@ local JuggleAI = {
 		self.toggle = false
 		Echo("JuggleAI toggled Off")
 	end,
-	
-	pushBombsAndHeavies = function (self)
+
+    pushBombsAndPullAircraft = function (self)
+        if (GetUnitHealth(self.unitID)<self.maxHealth*0.3)then --Health too low to pull units without risk of death.
+            local target = {GetUnitWeaponTarget(self.unitID, 1)}
+            if(target[1]==1)then
+                if not(GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+                    DefID = GetUnitDefID(target[3])
+                    if not(DefID == nil)then
+                        if (UnitDefs[DefID].isAirUnit == true)then
+                            GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0) --Still wants to pull Aircraft.
+                            return
+                        end
+                    end
+                end
+            else
+                target = {GetUnitWeaponTarget(self.unitID, 2)}
+                if(target[1]==1)then
+                    if not(GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+                        DefID = GetUnitDefID(target[3])
+                        if not(DefID == nil)then
+                            if (UnitDefs[DefID].isAirUnit == true)then
+                                GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)--Still wants to pull Aircraft.
+                                return
+                            end
+                        end
+                    end
+                end
+            end
+            GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
+            return
+        end
+
+        local target = {GetUnitWeaponTarget(self.unitID, 1)}
+        if(target[1]==1)then
+            if not (GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+                DefID = GetUnitDefID(target[3])
+                if not(DefID == nil)then
+                    if(UnitDefs[DefID].name==Imp_NAME or UnitDefs[DefID].name==Scuttle_NAME or UnitDefs[DefID].name==Snitch_NAME or UnitDefs[DefID].name==Puppy_NAME or UnitDefs[DefID].name==Limpet_NAME) then
+                        GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
+                        return
+                    end
+                    if (UnitDefs[DefID].isAirUnit == true)then
+                        GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)--Still wants to pull Aircraft.
+                        return
+                    end
+                end
+            end
+        else
+            target = {GetUnitWeaponTarget(self.unitID, 2)}
+            if(target[1]==1)then
+                if not (GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+                    DefID = GetUnitDefID(target[3])
+                    if not(DefID == nil)then
+                        if(UnitDefs[DefID].name==Imp_NAME or UnitDefs[DefID].name==Scuttle_NAME or UnitDefs[DefID].name==Snitch_NAME or UnitDefs[DefID].name==Puppy_NAME or UnitDefs[DefID].name==Limpet_NAME) then
+                            GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
+                            return
+                        end
+                        if (UnitDefs[DefID].isAirUnit == true)then
+                            GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)--Still wants to pull Aircraft.
+                            return
+                        end
+                    end
+                end
+            end
+        end
+    end,
+
+	handle = function(self)
 		if (GetUnitHealth(self.unitID)<self.maxHealth*0.3)then
-				GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
-				return
-			end
-		local target = {GetUnitWeaponTarget(self.unitID, 1)}
-		if(target[1]==1)then
-			if not (GetUnitAllyTeam(target[3]) == self.allyTeamID) then
-				DefID = GetUnitDefID(target[3])
-				if not(DefID == nil)then
-					if((UnitDefs[DefID].mass>380 and UnitDefs[DefID].isBuilding == false and UnitDefs[DefID].name~=Crab_NAME) or UnitDefs[DefID].name==Imp_NAME or UnitDefs[DefID].name==Scuttle_NAME or UnitDefs[DefID].name==Snitch_NAME or UnitDefs[DefID].name==Puppy_NAME or UnitDefs[DefID].name==Limpet_NAME) then
-						GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
-						return
+			local target = {GetUnitWeaponTarget(self.unitID, 1)}
+			if(target[1]==1)then
+				if not(GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+					DefID = GetUnitDefID(target[3])
+					if not(DefID == nil)then
+						if (UnitDefs[DefID].isAirUnit == true)then
+							GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)
+							return
+						end
+					end
+				end
+			else
+				target = {GetUnitWeaponTarget(self.unitID, 2)}
+				if(target[1]==1)then
+					if not(GetUnitAllyTeam(target[3]) == self.allyTeamID) then
+						DefID = GetUnitDefID(target[3])
+						if not(DefID == nil)then
+							if (UnitDefs[DefID].isAirUnit == true)then
+								GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)
+								return
+							end
+						end
 					end
 				end
 			end
+			GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
+			return
 		end
-	end,
-	
-	handle = function(self)
-		if (GetUnitHealth(self.unitID)<self.maxHealth*0.3)then
-				GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
-				return
-			end
+
 		if (self.toggle)then
 			self.checkpoint = self.checkpoint+1
 			local target = {GetUnitWeaponTarget(self.unitID, 1)}
@@ -165,12 +238,12 @@ local JuggleAI = {
 								GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)
 								return
 							end
-							
-							if((UnitDefs[DefID].mass>380 and UnitDefs[DefID].name~=Crab_NAME) or UnitDefs[DefID].name==Imp_NAME 
-							or UnitDefs[DefID].name==Scuttle_NAME 
-							or UnitDefs[DefID].name==Snitch_NAME 
-							or UnitDefs[DefID].name==Puppy_NAME 
-							or UnitDefs[DefID].name==Limpet_NAME) then
+
+							if((UnitDefs[DefID].mass>380 and UnitDefs[DefID].name~=Crab_NAME) or UnitDefs[DefID].name==Imp_NAME
+									or UnitDefs[DefID].name==Scuttle_NAME
+									or UnitDefs[DefID].name==Snitch_NAME
+									or UnitDefs[DefID].name==Puppy_NAME
+									or UnitDefs[DefID].name==Limpet_NAME) then
 								GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
 								return
 							end
@@ -212,12 +285,12 @@ local JuggleAI = {
 									GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Pull}, 0)
 									return
 								end
-								
-								if((UnitDefs[DefID].mass>380 and UnitDefs[DefID].name~=Crab_NAME) or UnitDefs[DefID].name==Imp_NAME 
-								or UnitDefs[DefID].name==Scuttle_NAME 
-								or UnitDefs[DefID].name==Snitch_NAME 
-								or UnitDefs[DefID].name==Puppy_NAME 
-								or UnitDefs[DefID].name==Limpet_NAME) then
+
+								if((UnitDefs[DefID].mass>380 and UnitDefs[DefID].name~=Crab_NAME) or UnitDefs[DefID].name==Imp_NAME
+										or UnitDefs[DefID].name==Scuttle_NAME
+										or UnitDefs[DefID].name==Snitch_NAME
+										or UnitDefs[DefID].name==Puppy_NAME
+										or UnitDefs[DefID].name==Limpet_NAME) then
 									GiveOrderToUnit(self.unitID,CMD_PUSH_PULL, {Push}, 0)
 									return
 								end
@@ -227,7 +300,7 @@ local JuggleAI = {
 				end
 			end
 		else
-			self:pushBombsAndHeavies()
+			self:pushBombsAndPullAircraft()
 		end
 	end
 }
