@@ -1,13 +1,13 @@
 function widget:GetInfo()
-   return {
-      name         = "ShieldtargetAI",
-      desc         = "attempt to make units fire the shields of enemy units. Version 1.00",
-      author       = "terve886",
-      date         = "2019",
-      license      = "PD", -- should be compatible with Spring
-      layer        = 11,
-      enabled      = true
-   }
+	return {
+		name         = "ShieldtargetAI",
+		desc         = "attempt to make units fire the shields of enemy units. Version 1.00",
+		author       = "terve886",
+		date         = "2019",
+		license      = "PD", -- should be compatible with Spring
+		layer        = 11,
+		enabled      = true
+	}
 end
 
 local pi = math.pi
@@ -31,6 +31,7 @@ local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local GetUnitShieldState = Spring.GetUnitShieldState
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitStates = Spring.GetUnitStates
+local GetUnitWeaponTarget = Spring.GetUnitWeaponTarget
 local Jack_NAME = "jumpassault"
 local Scythe_NAME = "cloakheavyraid"
 local Raven_NAME = "bomberprec"
@@ -66,6 +67,7 @@ local Felon_NAME = "shieldfelon"
 local Scalpel_NAME = "hoverskirm"
 local Stinger_NAME = "turretheavylaser"
 local Locust_NAME = "gunshipraid"
+local Revenant_NAME = "gunshipassault"
 local ENEMY_DETECT_BUFFER  = 35
 local Echo = Spring.Echo
 local GetSpecState = Spring.GetSpectatingState
@@ -187,13 +189,17 @@ local ShieldTargettingController = {
 			targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 			self:fire(targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3])
 		else
-			self:stop()
+			local target = {GetUnitWeaponTarget(self.unitID, 1)}
+			if(target[1]==2)then
+				self:stop()
+			end
 		end
 	end,
 
 	stop=function(self)
 		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 	end,
+
 	fire=function(self, x, y, z)
 		GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {x, y, z}, 0)
 	end,
@@ -233,45 +239,46 @@ local BuildingShieldTargettingController = {
 }
 
 function distance ( x1, y1, x2, y2 )
-  local dx = (x1 - x2)
-  local dy = (y1 - y2)
-  return sqrt ( dx * dx + dy * dy )
+	local dx = (x1 - x2)
+	local dy = (y1 - y2)
+	return sqrt ( dx * dx + dy * dy )
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].isBuilding == false)then
 		if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(unitID) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
-			or UnitDefs[unitDefID].name==Scythe_NAME
-			or UnitDefs[unitDefID].name==Phoenix_NAME
-			or UnitDefs[unitDefID].name==Raven_NAME
-			or UnitDefs[unitDefID].name==Ogre_NAME
-			or UnitDefs[unitDefID].name==Reaver_NAME
-			or UnitDefs[unitDefID].name==Kodachi_NAME
-			or UnitDefs[unitDefID].name==Moderator_NAME
-			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME
-			or UnitDefs[unitDefID].name==Bandit_NAME
-			or UnitDefs[unitDefID].name==Scorcher_NAME
-			or UnitDefs[unitDefID].name==Redback_NAME
-			or UnitDefs[unitDefID].name==Pyro_NAME
-			or UnitDefs[unitDefID].name==Nimbus_NAME
-			or UnitDefs[unitDefID].name==Mace_NAME
-			or UnitDefs[unitDefID].name==Widow_NAME
-			or UnitDefs[unitDefID].name==Scorpion_NAME
-			or UnitDefs[unitDefID].name==Dante_NAME
-			or UnitDefs[unitDefID].name==Ultimatum_NAME
-			or UnitDefs[unitDefID].name==Halbert_NAME
-			or UnitDefs[unitDefID].name==Puppy_NAME
-			or UnitDefs[unitDefID].name==Lobster_NAME
-			or UnitDefs[unitDefID].name==Jugglenaut_NAME
-			or UnitDefs[unitDefID].name==Recluse_NAME
-			or UnitDefs[unitDefID].name==Felon_NAME
-			or UnitDefs[unitDefID].name==Dirtbag_NAME
-			or UnitDefs[unitDefID].name==Scalpel_NAME
-			or string.match(UnitDefs[unitDefID].name, "dyn")
-			or UnitDefs[unitDefID].name==Locust_NAME
-			or UnitDefs[unitDefID].name==Ripper_NAME)) then
-				UnitStack[unitID] = ShieldTargettingController:new(unitID);
+				or UnitDefs[unitDefID].name==Scythe_NAME
+				or UnitDefs[unitDefID].name==Phoenix_NAME
+				or UnitDefs[unitDefID].name==Raven_NAME
+				or UnitDefs[unitDefID].name==Ogre_NAME
+				or UnitDefs[unitDefID].name==Reaver_NAME
+				or UnitDefs[unitDefID].name==Kodachi_NAME
+				or UnitDefs[unitDefID].name==Moderator_NAME
+				or UnitDefs[unitDefID].name==Dominatrix_NAME
+				or UnitDefs[unitDefID].name==Venom_NAME
+				or UnitDefs[unitDefID].name==Bandit_NAME
+				or UnitDefs[unitDefID].name==Scorcher_NAME
+				or UnitDefs[unitDefID].name==Redback_NAME
+				or UnitDefs[unitDefID].name==Pyro_NAME
+				or UnitDefs[unitDefID].name==Nimbus_NAME
+				or UnitDefs[unitDefID].name==Mace_NAME
+				or UnitDefs[unitDefID].name==Widow_NAME
+				or UnitDefs[unitDefID].name==Scorpion_NAME
+				or UnitDefs[unitDefID].name==Dante_NAME
+				or UnitDefs[unitDefID].name==Ultimatum_NAME
+				or UnitDefs[unitDefID].name==Halbert_NAME
+				or UnitDefs[unitDefID].name==Puppy_NAME
+				or UnitDefs[unitDefID].name==Lobster_NAME
+				or UnitDefs[unitDefID].name==Jugglenaut_NAME
+				or UnitDefs[unitDefID].name==Recluse_NAME
+				or UnitDefs[unitDefID].name==Felon_NAME
+				or UnitDefs[unitDefID].name==Dirtbag_NAME
+				or UnitDefs[unitDefID].name==Scalpel_NAME
+				or string.match(UnitDefs[unitDefID].name, "dyn")
+				or UnitDefs[unitDefID].name==Locust_NAME
+				or UnitDefs[unitDefID].name==Revenant_NAME
+				or UnitDefs[unitDefID].name==Ripper_NAME)) then
+			UnitStack[unitID] = ShieldTargettingController:new(unitID);
 		end
 	else
 		if(unitTeam==GetMyTeamID() and (UnitDefs[unitDefID].name==Gauss_NAME or UnitDefs[unitDefID].name==Desolator_NAME or UnitDefs[unitDefID].name==Stinger_NAME))then
@@ -311,18 +318,18 @@ end
 
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 
@@ -342,36 +349,37 @@ function widget:Initialize()
 		local unitDefID = GetUnitDefID(units[i])
 		if (UnitDefs[unitDefID].isBuilding == false)then
 			if(UnitDefs[unitDefID].weapons[1] and GetUnitMaxRange(units[i]) < 695 and not(UnitDefs[unitDefID].name==Jack_NAME
-			or UnitDefs[unitDefID].name==Scythe_NAME
-			or UnitDefs[unitDefID].name==Phoenix_NAME
-			or UnitDefs[unitDefID].name==Raven_NAME
-			or UnitDefs[unitDefID].name==Ogre_NAME
-			or UnitDefs[unitDefID].name==Reaver_NAME
-			or UnitDefs[unitDefID].name==Kodachi_NAME
-			or UnitDefs[unitDefID].name==Moderator_NAME
-			or UnitDefs[unitDefID].name==Dominatrix_NAME
-			or UnitDefs[unitDefID].name==Venom_NAME
-			or UnitDefs[unitDefID].name==Bandit_NAME
-			or UnitDefs[unitDefID].name==Scorcher_NAME
-			or UnitDefs[unitDefID].name==Redback_NAME
-			or UnitDefs[unitDefID].name==Pyro_NAME
-			or UnitDefs[unitDefID].name==Nimbus_NAME
-			or UnitDefs[unitDefID].name==Mace_NAME
-			or UnitDefs[unitDefID].name==Widow_NAME
-			or UnitDefs[unitDefID].name==Scorpion_NAME
-			or UnitDefs[unitDefID].name==Dante_NAME
-			or UnitDefs[unitDefID].name==Ultimatum_NAME
-			or UnitDefs[unitDefID].name==Halbert_NAME
-			or UnitDefs[unitDefID].name==Puppy_NAME
-			or UnitDefs[unitDefID].name==Lobster_NAME
-			or UnitDefs[unitDefID].name==Jugglenaut_NAME
-			or UnitDefs[unitDefID].name==Recluse_NAME
-			or UnitDefs[unitDefID].name==Felon_NAME
-			or UnitDefs[unitDefID].name==Dirtbag_NAME
-			or UnitDefs[unitDefID].name==Scalpel_NAME
-			or string.match(UnitDefs[unitDefID].name, "dyn")
-			or UnitDefs[unitDefID].name==Locust_NAME
-			or UnitDefs[unitDefID].name==Ripper_NAME)) then
+					or UnitDefs[unitDefID].name==Scythe_NAME
+					or UnitDefs[unitDefID].name==Phoenix_NAME
+					or UnitDefs[unitDefID].name==Raven_NAME
+					or UnitDefs[unitDefID].name==Ogre_NAME
+					or UnitDefs[unitDefID].name==Reaver_NAME
+					or UnitDefs[unitDefID].name==Kodachi_NAME
+					or UnitDefs[unitDefID].name==Moderator_NAME
+					or UnitDefs[unitDefID].name==Dominatrix_NAME
+					or UnitDefs[unitDefID].name==Venom_NAME
+					or UnitDefs[unitDefID].name==Bandit_NAME
+					or UnitDefs[unitDefID].name==Scorcher_NAME
+					or UnitDefs[unitDefID].name==Redback_NAME
+					or UnitDefs[unitDefID].name==Pyro_NAME
+					or UnitDefs[unitDefID].name==Nimbus_NAME
+					or UnitDefs[unitDefID].name==Mace_NAME
+					or UnitDefs[unitDefID].name==Widow_NAME
+					or UnitDefs[unitDefID].name==Scorpion_NAME
+					or UnitDefs[unitDefID].name==Dante_NAME
+					or UnitDefs[unitDefID].name==Ultimatum_NAME
+					or UnitDefs[unitDefID].name==Halbert_NAME
+					or UnitDefs[unitDefID].name==Puppy_NAME
+					or UnitDefs[unitDefID].name==Lobster_NAME
+					or UnitDefs[unitDefID].name==Jugglenaut_NAME
+					or UnitDefs[unitDefID].name==Recluse_NAME
+					or UnitDefs[unitDefID].name==Felon_NAME
+					or UnitDefs[unitDefID].name==Dirtbag_NAME
+					or UnitDefs[unitDefID].name==Scalpel_NAME
+					or string.match(UnitDefs[unitDefID].name, "dyn")
+					or UnitDefs[unitDefID].name==Locust_NAME
+					or UnitDefs[unitDefID].name==Revenant_NAME
+					or UnitDefs[unitDefID].name==Ripper_NAME)) then
 				if  (UnitStack[units[i]]==nil) then
 					UnitStack[units[i]] = ShieldTargettingController:new(units[i]);
 				end
