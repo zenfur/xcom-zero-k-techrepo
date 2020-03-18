@@ -29,6 +29,10 @@ local Echo = Spring.Echo
 local Charon_NAME = "gunshiptrans"
 local Claymore_NAME = "hoverdepthcharge"
 local Hercules_NAME = "gunshipheavytrans"
+local Imp_NAME = "cloakbomb"
+local Scuttle_NAME = "jumpbomb"
+local Snitch_NAME = "shieldbomb"
+local Limpet_NAME = "amphbomb"
 local GetSpecState = Spring.GetSpectatingState
 local GetUnitIsTransporting = Spring.GetUnitIsTransporting
 local GetUnitWeaponState = Spring.GetUnitWeaponState
@@ -243,7 +247,7 @@ function widget:CommandNotify(cmdID, params, options)
 					end
 					transportedUnitID = transportedUnit[1]
 					DefID = GetUnitDefID(transportedUnitID)
-					if (UnitDefs[DefID].name == Claymore_NAME) then
+					if (UnitDefs[DefID].name == Claymore_NAME or UnitDefs[DefID].name == Limpet_NAME or UnitDefs[DefID].name == Snitch_NAME or UnitDefs[DefID].name == Imp_NAME or UnitDefs[DefID].name == Scuttle_NAME) then
 						if(TransporterStack[selectedTransports[i]] and TransporterStack[selectedTransports[i]].reloadZone and TransporterStack[selectedTransports[i]].autoReloadToggle)then
 							--Unit is sent to reloadzone--
 							GiveOrderToUnit(selectedTransports[i], CMD_FORCE_DROP_UNIT, {},{""})
