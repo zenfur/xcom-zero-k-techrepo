@@ -1,13 +1,13 @@
 function widget:GetInfo()
-   return {
-      name         = "FleaCloakSpotter",
-      desc         = "attempt to make Flea search for cloaked units when Flea is decloaked by cloaked enemy unit. Version 0,97",
-      author       = "terve886",
-      date         = "2019",
-      license      = "PD", -- should be compatible with Spring
-      layer        = 10,
-      enabled      = true
-   }
+	return {
+		name         = "FleaCloakSpotter",
+		desc         = "attempt to make Flea search for cloaked units when Flea is decloaked by cloaked enemy unit. Version 0,97",
+		author       = "terve886",
+		date         = "2019",
+		license      = "PD", -- should be compatible with Spring
+		layer        = 10,
+		enabled      = true
+	}
 end
 local UPDATE_FRAME=5
 local currentFrame = 0
@@ -35,13 +35,22 @@ local GetTeamUnits = Spring.GetTeamUnits
 local GetTeamResources = Spring.GetTeamResources
 local MarkerAddPoint = Spring.MarkerAddPoint
 local GetCommandQueue = Spring.GetCommandQueue
+local GetUnitHeading = Spring.GetUnitHeading
 local team_id
 local Echo = Spring.Echo
+local pi = math.pi
+local FULL_CIRCLE_RADIANT = 2 * pi
+local HEADING_TO_RAD = (pi*2/65536 )
 local CMD_STOP = CMD.STOP
 local CMD_OPT_SHIFT = CMD.OPT_SHIFT
 local CMD_INSERT = CMD.INSERT
 local CMD_MOVE = CMD.MOVE
 local CMD_ATTACK_MOVE_ID = 16
+local HalfPi = math.pi/2
+local atan = math.atan
+local sin = math.sin
+local cos = math.cos
+local sqrt = math.sqrt
 
 local GetSpecState = Spring.GetSpectatingState
 
@@ -55,7 +64,7 @@ local CloakToCloakSpotAI = {
 	reloadTime,
 	enemyNear = false,
 
-	
+
 	new = function(self, unitID)
 		--Echo("CloakToCloakSpotAI added:" .. unitID)
 		self = deepcopy(self)
@@ -74,7 +83,7 @@ local CloakToCloakSpotAI = {
 		return nil
 	end,
 
-	
+
 	isEnemyInRange = function (self)
 		self.pos = {GetUnitPosition(self.unitID)}
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
@@ -87,36 +96,60 @@ local CloakToCloakSpotAI = {
 		end
 		return false
 	end,
-	
+
 	handle = function(self)
 		local unitStates = GetUnitStates(self.unitID)
 		if(GetCommandQueue(self.unitID,0)==0)then
 			self.reloadState = GetUnitWeaponState(self.unitID, 1, "reloadState")
 			if(currentFrame >= self.reloadState-self.reloadTime+120)then
 				if(self:isEnemyInRange()==false)then
-					if (self.cooldownFrame<currentFrame)then
-						self.cooldownFrame = currentFrame+400
-						MarkerAddPoint (self.pos[1], self.pos[2], self.pos[3], "enemyCloakerNearby", true)
-						GiveOrderToUnit(self.unitID,CMD_ATTACK_MOVE_ID, {self.pos[1]+self.range, self.pos[2],self.pos[3]}, 0)
-						GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.pos[1], self.pos[2],self.pos[3]+self.range}, {"alt"})
-						GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.pos[1]-self.range, self.pos[2],self.pos[3]}, {"alt"})
-						GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.pos[1], self.pos[2],self.pos[3]-self.range}, {"alt"})
-						GiveOrderToUnit(self.unitID, CMD_INSERT,{4, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.pos[1], self.pos[2],self.pos[3]}, {"alt"})
+					MarkerAddPoint (self.pos[1], self.pos[2], self.pos[3], "enemyCloakerNearby", true)
+					local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
+					for i=0, 3 do
+
+						local targetPosRelative = {
+							sin(heading+i*HalfPi)*(self.range),
+							nil,
+							cos(heading+i*HalfPi)*(self.range),
+						}
+
+						local targetPosAbsolute= {
+							targetPosRelative[1]+self.pos[1],
+							nil,
+							targetPosRelative[3]+self.pos[3],
+						}
+
+						GiveOrderToUnit(self.unitID, CMD_INSERT,{i, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, targetPosAbsolute[1], self.pos[2], targetPosAbsolute[3]},{"alt"})
+
 					end
+
+					GiveOrderToUnit(self.unitID, CMD_INSERT,{4, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.pos[1], self.pos[2], self.pos[3]},{"alt"})
+					local targetPosRelative = {
+						sin(heading)*(20),
+						nil,
+						cos(heading)*(20),
+					}
+
+					local targetPosAbsolute= {
+						targetPosRelative[1]+self.pos[1],
+						nil,
+						targetPosRelative[3]+self.pos[3],
+					}
+					GiveOrderToUnit(self.unitID, CMD_INSERT,{5, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, targetPosAbsolute[1], self.pos[2], targetPosAbsolute[3]},{"alt"})
 				end
 			end
 		end
-	end	
+	end
 }
 function widget:UnitDecloaked(unitID, unitDefID, teamID)
 	if(CloakerStack[unitID])then
 		CloakerStack[unitID]:handle();
 	end
-end 
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Flea_NAME
-	and unitTeam==GetMyTeamID()) then
+			and unitTeam==GetMyTeamID()) then
 		CloakerStack[unitID] = CloakToCloakSpotAI:new(unitID);
 	end
 end
@@ -133,24 +166,24 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weap
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 end
 
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 
