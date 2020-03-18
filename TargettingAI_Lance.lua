@@ -1,16 +1,22 @@
 function widget:GetInfo()
-   return {
-      name         = "TargettingAI_Lance",
-      desc         = "attempt to make Lance not fire Razors, metal extractors, solars and wind generators without order. Meant to be used with return fire state. Version 0,87",
-      author       = "terve886",
-      date         = "2019",
-      license      = "PD", -- should be compatible with Spring
-      layer        = 11,
-      enabled      = true
-   }
+	return {
+		name         = "TargettingAI_Lance",
+		desc         = "attempt to make Lance not fire Razors, metal extractors, solars and wind generators without order. Meant to be used with return fire state. Version 0,87",
+		author       = "terve886",
+		date         = "2019",
+		license      = "PD", -- should be compatible with Spring
+		layer        = 11,
+		enabled      = true
+	}
 end
 
 
+local pi = math.pi
+local sin = math.sin
+local cos = math.cos
+local atan = math.atan
+local abs = math.abs
+local sqrt = math.sqrt
 local UPDATE_FRAME=4
 local LanceStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
@@ -29,6 +35,7 @@ local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
 local IsUnitInLos = Spring.IsUnitInLos
+local GetUnitVelocity  = Spring.GetUnitVelocity
 local ENEMY_DETECT_BUFFER  = 40
 local Echo = Spring.Echo
 local Lance_NAME = "hoverarty"
@@ -50,8 +57,8 @@ local LanceController = {
 	allyTeamID = GetMyAllyTeamID(),
 	range,
 	forceTarget,
-	
-	
+
+
 	new = function(self, unitID)
 		--Echo("LanceController added:" .. unitID)
 		self = deepcopy(self)
@@ -66,11 +73,11 @@ local LanceController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 	isEnemyTooClose = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 500)
 		for i=1, #units do
@@ -148,9 +155,13 @@ local LanceController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, target, 0)
 		end
 	end,
-	
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate==1)then
+			velocity = {GetUnitVelocity(self.unitID)}
+			if(abs(velocity[1])+abs(velocity[3])>1.5)then --Do not fire while on move.
+				return
+			end
 			self.pos = {GetUnitPosition(self.unitID)}
 			if not(self:isEnemyTooClose())then
 				self:isEnemyInRange()
@@ -169,20 +180,20 @@ end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Lance_NAME)
-	and (unitTeam==GetMyTeamID()) then
+			and (unitTeam==GetMyTeamID()) then
 		LanceStack[unitID] = LanceController:new(unitID);
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (LanceStack[unitID]==nil) then
 		LanceStack[unitID]=LanceStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
-		for _,Lance in pairs(LanceStack) do 
+		for _,Lance in pairs(LanceStack) do
 			Lance:handle()
 		end
 	end
@@ -190,18 +201,18 @@ end
 
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 
