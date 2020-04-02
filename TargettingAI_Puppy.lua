@@ -108,7 +108,7 @@ local PuppyController = {
 							or (UnitDefs[DefID].name == Razor_NAME 
 							or UnitDefs[DefID].name == Gauss_NAME 
 							or UnitDefs[DefID].name == Faraday_NAME
-							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor) and (bp>0.8) then
+							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor) and (bp and bp>0.8)then
 								if (target == nil) then
 									target = units[i]
 								end
