@@ -1,14 +1,14 @@
 function widget:GetInfo()
-   return {
-      name         = "BombCustomWaypoint",
-      desc         = "Adds command to factories with kamikaze units to make them go to another waypoint. Version 1,06",
-      author       = "terve886",
-      date         = "2020",
-      license      = "PD", -- should be compatible with Spring
-      layer        = 11,
-	  handler		= true, --for adding customCommand into UI
-      enabled      = true
-   }
+	return {
+		name         = "BombCustomWaypoint",
+		desc         = "Adds command to factories with kamikaze units to make them go to another waypoint. Version 1,06",
+		author       = "terve886",
+		date         = "2020",
+		license      = "PD", -- should be compatible with Spring
+		layer        = 11,
+		handler		= true, --for adding customCommand into UI
+		enabled      = true
+	}
 end
 local FactoryStack = {}
 local GetUnitHeading = Spring.GetUnitHeading
@@ -64,9 +64,9 @@ local cmdSetBombWayPoint = {
 	tooltip = 'Set custom waypoint for bomb units.',
 	cursor  = 'Target',
 	action  = 'reclaim',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/wait_death.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
@@ -76,9 +76,9 @@ local FactoryWaypointController = {
 	allyTeamID = GetMyAllyTeamID(),
 	targetParams,
 
-	
-	
-	
+
+
+
 	new = function(self, unitID)
 		--Echo("FactoryWaypointController added:" .. unitID)
 		self = deepcopy(self)
@@ -93,8 +93,8 @@ local FactoryWaypointController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
-	
+
+
 	setTargetParams = function (self, params)
 		self.targetParams = params
 	end
@@ -121,104 +121,106 @@ function widget:UnitGiven(unitID, unitDefID, unitTeam, oldTeam)
 		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
 	end
 end
-end
+
+
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME)
 and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
 FactoryStack[unitID] = FactoryWaypointController:new(unitID);
 end
 end
-end
 
-function widget:UnitDestroyed(unitID) 
-	if not (FactoryStack[unitID]==nil) then
-		FactoryStack[unitID]=FactoryStack[unitID]:unset();
-	end
+
+
+function widget:UnitDestroyed(unitID)
+if not (FactoryStack[unitID]==nil) then
+FactoryStack[unitID]=FactoryStack[unitID]:unset();
+end
 end
 
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+local orig_type = type(orig)
+local copy
+if orig_type == 'table' then
+copy = {}
+for orig_key, orig_value in next, orig, nil do
+copy[deepcopy(orig_key)] = deepcopy(orig_value)
+end
+setmetatable(copy, deepcopy(getmetatable(orig)))
+else
+copy = orig
+end
+return copy
 end
 
 
 --- COMMAND HANDLING
 
 function widget:CommandNotify(cmdID, params, options)
-	if selectedFactories ~= nil then
-		if (cmdID == CMD_SET_BOMB_WAYPOINT)then
-			for i=1, #selectedFactories do
-				if (FactoryStack[selectedFactories[i]])then
-					FactoryStack[selectedFactories[i]]:setTargetParams(params)
-				end
-			end
-			return true
-		end
-	end
+if selectedFactories ~= nil then
+if (cmdID == CMD_SET_BOMB_WAYPOINT)then
+for i=1, #selectedFactories do
+if (FactoryStack[selectedFactories[i]])then
+FactoryStack[selectedFactories[i]]:setTargetParams(params)
+end
+end
+return true
+end
+end
 end
 
 function widget:SelectionChanged(selectedUnits)
-	selectedFactories = filterFactories(selectedUnits)
+selectedFactories = filterFactories(selectedUnits)
 end
 
 function filterFactories(units)
-	local filtered = {}
-	local n = 0
-	for i = 1, #units do
-		local unitID = units[i]
-		if (CloakfacUnitDefID == GetUnitDefID(unitID) or JumpfacUnitDefID == GetUnitDefID(unitID) or ShieldfacUnitDefID == GetUnitDefID(unitID) or AmphfacUnitDefID == GetUnitDefID(unitID)) then
-			n = n + 1
-			filtered[n] = unitID
-		end
-	end
-	if n == 0 then
-		return nil
-	else
-		return filtered
-	end
+local filtered = {}
+local n = 0
+for i = 1, #units do
+local unitID = units[i]
+if (CloakfacUnitDefID == GetUnitDefID(unitID) or JumpfacUnitDefID == GetUnitDefID(unitID) or ShieldfacUnitDefID == GetUnitDefID(unitID) or AmphfacUnitDefID == GetUnitDefID(unitID)) then
+n = n + 1
+filtered[n] = unitID
+end
+end
+if n == 0 then
+return nil
+else
+return filtered
+end
 end
 
 function widget:CommandsChanged()
-	if selectedFactories then
-		local customCommands = widgetHandler.customCommands
-		customCommands[#customCommands+1] = cmdSetBombWayPoint
-	end
+if selectedFactories then
+local customCommands = widgetHandler.customCommands
+customCommands[#customCommands+1] = cmdSetBombWayPoint
+end
 end
 
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
-	if GetSpecState() then
-		widgetHandler:RemoveWidget()
-	end
+if GetSpecState() then
+widgetHandler:RemoveWidget()
+end
 end
 
 
 function widget:Initialize()
-	DisableForSpec()
-	local units = GetTeamUnits(Spring.GetMyTeamID())
-	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Jumpfac_NAME or UnitDefs[DefID].name==Shieldfac_NAME or UnitDefs[DefID].name==Amphfac_NAME or UnitDefs[DefID].name==Cloakfac_NAME)  then
-			if  (FactoryStack[units[i]]==nil) then
-				FactoryStack[units[i]]=FactoryWaypointController:new(units[i])
-			end
-		end
-	end
+DisableForSpec()
+local units = GetTeamUnits(Spring.GetMyTeamID())
+for i=1, #units do
+DefID = GetUnitDefID(units[i])
+if (UnitDefs[DefID].name==Jumpfac_NAME or UnitDefs[DefID].name==Shieldfac_NAME or UnitDefs[DefID].name==Amphfac_NAME or UnitDefs[DefID].name==Cloakfac_NAME)  then
+if  (FactoryStack[units[i]]==nil) then
+FactoryStack[units[i]]=FactoryWaypointController:new(units[i])
+end
+end
+end
 end
 
 
 function widget:PlayerChanged (playerID)
-	DisableForSpec()
+DisableForSpec()
 end
