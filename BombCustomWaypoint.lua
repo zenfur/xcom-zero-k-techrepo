@@ -101,18 +101,33 @@ local FactoryWaypointController = {
 }
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
-        if not(FactoryStack[builderID]==nil) and FactoryStack[builderID].targetParams~=nil and (unitTeam==GetMyTeamID())then
-			if (UnitDefs[unitDefID].name==Scuttle_NAME or UnitDefs[unitDefID].name==Snitch_NAME or UnitDefs[unitDefID].name==Limpet_NAME or UnitDefs[unitDefID].name==Imp_NAME)then
-				GiveOrderToUnit(unitID, CMD_RAW_MOVE, {FactoryStack[builderID].targetParams[1], FactoryStack[builderID].targetParams[2], FactoryStack[builderID].targetParams[3]},0)
-			end
+	if not(FactoryStack[builderID]==nil) and FactoryStack[builderID].targetParams~=nil and (unitTeam==GetMyTeamID())then
+		if (UnitDefs[unitDefID].name==Scuttle_NAME or UnitDefs[unitDefID].name==Snitch_NAME or UnitDefs[unitDefID].name==Limpet_NAME or UnitDefs[unitDefID].name==Imp_NAME)then
+			GiveOrderToUnit(unitID, CMD_RAW_MOVE, {FactoryStack[builderID].targetParams[1], FactoryStack[builderID].targetParams[2], FactoryStack[builderID].targetParams[3]},0)
 		end
-    end
+	end
+end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME)
-		and (unitTeam==GetMyTeamID()) then
-			FactoryStack[unitID] = FactoryWaypointController:new(unitID);
-		end
+	if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME)
+			and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
+		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
+	end
+end
+
+function widget:UnitGiven(unitID, unitDefID, unitTeam, oldTeam)
+	if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME)
+			and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
+		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
+	end
+end
+end
+function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
+if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME)
+and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
+FactoryStack[unitID] = FactoryWaypointController:new(unitID);
+end
+end
 end
 
 function widget:UnitDestroyed(unitID) 
