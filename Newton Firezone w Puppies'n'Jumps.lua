@@ -31,7 +31,7 @@ local glLineWidth = gl.LineWidth
 local glColor = gl.Color
 local glBeginEnd = gl.BeginEnd
 local glVertex = gl.Vertex
-local circleList 
+local circleList
 
 local TraceScreenRay = Spring.TraceScreenRay
 local GetGroundHeight = Spring.GetGroundHeight
@@ -59,6 +59,7 @@ local GetUnitRadius = Spring.GetUnitRadius
 local IsGUIHidden = Spring.IsGUIHidden
 local GetUnitHeading = Spring.GetUnitHeading
 local GetUnitWeaponState = Spring.GetUnitWeaponState
+local IsUnitSelected = Spring.IsUnitSelected
 
 
 
@@ -113,9 +114,9 @@ local cmdSafeFall = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes unit land safely from fall.',
 	action  = 'reclaim',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 local cmdFirezone = {
@@ -124,9 +125,9 @@ local cmdFirezone = {
 	tooltip = 'Set a Newton firezone. Newtons will fire at all units in the area (including allies).',
 	cursor  = 'Attack',
 	action  = 'setfirezone',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/capture.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 local cmdStopFirezone = {
@@ -135,9 +136,9 @@ local cmdStopFirezone = {
 	tooltip = 'Disasociate Newton from current firezone.',
 	cursor  = 'Stop',
 	action  = 'cancelfirezone',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/stop.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 local bombUnitDefIDs = {
@@ -164,7 +165,7 @@ options_order = { 'lbl_newton', 'predictNewton', 'alwaysDrawZones', 'lbl_transpo
 options = {
 	lbl_newton = { name = 'Newton Launchers', type = 'label'},
 	predictNewton = {
-		type='radioButton', 
+		type='radioButton',
 		name='Predict impact location for',
 		items = {
 			{name = 'All units', key = 'all', desc = "All units will have their impact predicted whenever they take damge."},
@@ -187,7 +188,7 @@ options = {
 		end,
 	},
 	alwaysDrawZones = {
-		name = "Always draw firezones", 
+		name = "Always draw firezones",
 		desc = "Enable to always draw Newton firezones. Otherwise they are only drawn on selection.",
 		type = 'bool',
 		value = false,
@@ -197,7 +198,7 @@ options = {
 	},
 	lbl_transports = { name = 'Transports', type = 'label'},
 	predictDrop = {
-		type='radioButton', 
+		type='radioButton',
 		name='Predict transport drop location for',
 		items = {
 			{name = 'All units', key = 'all', desc = "All units will have their drop location predicted."},
@@ -268,7 +269,7 @@ local function LimitRectangleSize(rect,units)  --limit rectangle size to Newton'
 	local minX = huge
 	local maxZ = 0
 	local minZ = huge
-	for i = 1, #units do 
+	for i = 1, #units do
 		local unitID = units[i]
 		if GetUnitDefID(unitID) == newtonUnitDefID then
 			local x,_,z = GetUnitPosition(unitID)
@@ -313,7 +314,7 @@ local function FixRectangle(rect)
 		rect.z = rect.z2
 		rect.z2 = tmp
 	end
-	
+
 	rect.y_xy   = GetGroundHeight(rect.x, rect.z)
 	rect.y_x2y2 = GetGroundHeight(rect.x2, rect.z2)
 	rect.y_xy2  = GetGroundHeight(rect.x, rect.z2)
@@ -363,38 +364,38 @@ local function PickColor()
 end
 
 local function RemoveDeadGroups(units)
-	for i = 1, #units do 
+	for i = 1, #units do
 		local unitID = units[i]
 		if newtonIDs[unitID] then
 			local groupID, index = newtonIDs[unitID].groupID, newtonIDs[unitID].index
 			local groupData = groups.data[groupID]
 			local newtons = groupData.newtons
-			
+
 			newtons.data[index] = newtons.data[newtons.count]
 			newtonIDs[newtons.data[newtons.count]].index = index
 			newtons.data[newtons.count] = nil
 			newtons.count = newtons.count - 1
-			
+
 			newtonIDs[unitID] = nil
 			newtonTrianglePoints[unitID] = nil
-			
+
 			if newtons.count == 0 then
-				
+
 				local egNewtons = groups.data[groups.count].newtons -- end group
 				for j = 1, egNewtons.count do
 					newtonIDs[egNewtons.data[j]].groupID = groupID
 				end
-				
+
 				--displace/re-occupy dead group with another group
 				victimStillBeingAttacked[groupID] = victimStillBeingAttacked[groups.count]
 				victimStillBeingAttacked[groups.count] = nil
 				groupTarget[groupID] = groupTarget[groups.count]
 				groupTarget[groups.count] = nil
-				
+
 				groups.data[groupID] = groups.data[groups.count]
 				groups.data[groups.count] = nil
 				groups.count = groups.count - 1
-				
+
 				if groups.count == 0 then
 					softEnabled = false
 				end
@@ -406,14 +407,14 @@ end
 local function NewGroup(groupNewtons, points)
 	points = LimitRectangleSize(points, groupNewtons)
 	points = FixRectangle(points)
-	
+
 	RemoveDeadGroups(groupNewtons)
-	
+
 	local reaimPos = {}
 	reaimPos[1] = (points.x + points.x2)/2
 	reaimPos[3] = (points.z + points.z2)/2
 	reaimPos[2] = GetGroundHeight(reaimPos[1], reaimPos[3])
-	
+
 	groups.count = groups.count + 1
 	groups.data[groups.count] = {
 		newtons = {count = #groupNewtons, data = {}},
@@ -436,7 +437,7 @@ local function NewGroup(groupNewtons, points)
 			x +15, z -15
 		}
 	end
-	
+
 	softEnabled = true
 end
 
@@ -449,10 +450,10 @@ local PuppyLandingController = {
 	reloadState,
 	reloading = false,
 	forceland = false,
-	
-	
+
+
 	new = function(self, unitID)
-		Echo("PuppyLandingController added:" .. unitID)
+		--Echo("PuppyLandingController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -461,15 +462,15 @@ local PuppyLandingController = {
 	end,
 
 	unset = function(self)
-		Echo("PuppyLandingController removed:" .. self.unitID)
+		--Echo("PuppyLandingController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setLandingLocation = function(self, params)
 		self.landingTarget = params
 	end,
-	
+
 	getJumpCount = function(self)
 		local hp = GetUnitHealth(self.unitID)
 		if hp then
@@ -482,7 +483,7 @@ local PuppyLandingController = {
 		end
 		return 0
 	end,
-	
+
 	avoidCrash = function(self)
 		if(victimLandingLocation[self.unitID])then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -495,10 +496,10 @@ local PuppyLandingController = {
 			end
 		end
 	end,
-	
+
 	land = function(self)
 		if(self:getJumpCount() >=1)then
-			
+
 			self.pos = {GetUnitPosition(self.unitID)}
 			local gHeight = GetGroundHeight(self.pos[1],self.pos[3])
 			if (gHeight+5<=self.pos[2])then --Failsafe to prevent accidentally activating the command on ground
@@ -517,8 +518,8 @@ local PuppyLandingController = {
 					nil,
 					cos(rotation) * (175+ping*200*speedMultiplier),
 				}
-				
-				Echo(ping*400*speedMultiplier) 
+
+				Echo(ping*400*speedMultiplier)
 				local targetPosAbsolute = {}
 				if (self.pos[3]<=self.landingTarget[3]) then
 					targetPosAbsolute = {
@@ -526,8 +527,8 @@ local PuppyLandingController = {
 						nil,
 						self.pos[3]+targetPosRelative[3],
 					}
-					else
-						targetPosAbsolute = {
+				else
+					targetPosAbsolute = {
 						self.pos[1]-targetPosRelative[1],
 						nil,
 						self.pos[3]-targetPosRelative[3],
@@ -535,13 +536,13 @@ local PuppyLandingController = {
 				end
 				targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 				GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
-				
-				Echo("landing ordered")
+
+				--Echo("landing ordered")
 				self.attackActive = true
 			end
-		end			
+		end
 	end,
-	
+
 	orderStop=function(self, frame)
 		if (self.attackActive)then
 			local reload = GetUnitWeaponState(self.unitID, 1, "reloadState")
@@ -550,7 +551,7 @@ local PuppyLandingController = {
 				self.reloading = false
 				return
 			end
-			
+
 			if (reload > self.reloadState)then
 				if(reload <= frame+20)then
 					GiveOrderToUnit(self.unitID, CMD_UNIT_CANCEL_TARGET,0,0)
@@ -563,7 +564,7 @@ local PuppyLandingController = {
 			end
 		end
 	end,
-	
+
 	handle=function(self, frame)
 		self:orderStop(frame)
 		self:avoidCrash()
@@ -577,10 +578,10 @@ local JumperLandingController = {
 	targetFrame = 0,
 	jumpActive = false,
 	landingTarget,
-	
-	
+
+
 	new = function(self, unitID)
-		Echo("JumperLandingController added:" .. unitID)
+		--Echo("JumperLandingController added:" .. unitID)
 		self = deepcopy(self)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -588,19 +589,24 @@ local JumperLandingController = {
 	end,
 
 	unset = function(self)
-		Echo("JumperLandingController removed:" .. self.unitID)
+		--Echo("JumperLandingController removed:" .. self.unitID)
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setLandingLocation = function(self, params)
 		self.landingTarget = params
 	end,
-	
+
 	avoidCrash = function(self)
+
+		if (SIsUnitSelected(self.unitID))then
+			return
+		end
+
 		self.pos = {GetUnitPosition(self.unitID)}
 		if(victimLandingLocation[self.unitID])then
-			if(distance(self.pos[1],self.pos[3],self.landingTarget[1],self.landingTarget[3])<=450+abs(6000/(self.pos[2]-self.landingTarget[2])))then
+			if(distance(self.pos[1],self.pos[3],self.landingTarget[1],self.landingTarget[3])<=200+abs(6000/(self.pos[2]-self.landingTarget[2])))then
 				unitVel = {GetUnitVelocity(self.unitID)}
 				local yVel = unitVel[2]
 				if (yVel <=0)then
@@ -609,7 +615,7 @@ local JumperLandingController = {
 			end
 		end
 	end,
-	
+
 	land = function(self)
 		EstimateCrashLocation(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -621,7 +627,7 @@ local JumperLandingController = {
 			self.targetFrame = currentFrame + 9
 		end
 	end,
-	
+
 	orderStop=function(self)
 		if (self.jumpActive and self.targetFrame <= currentFrame)then
 			self.jumpActive = false
@@ -629,7 +635,7 @@ local JumperLandingController = {
 			GiveOrderToUnit(self.unitID,CMD_RAW_MOVE, self.landingTarget, 0)
 		end
 	end,
-	
+
 	handle=function(self)
 		self:avoidCrash()
 		self:orderStop()
@@ -754,23 +760,23 @@ function widget:CommandsChanged()
 end
 
 function distance ( x1, y1, x2, y2 )
-  local dx = (x1 - x2)
-  local dy = (y1 - y2)
-  return sqrt ( dx * dx + dy * dy )
+	local dx = (x1 - x2)
+	local dy = (y1 - y2)
+	return sqrt ( dx * dx + dy * dy )
 end
 -------------------------------------------------------------------
 -------------------------------------------------------------------
 --- SPECTATOR CHECK
 local function IsSpectatorAndExit()
 	local _, _, spec = GetPlayerInfo(GetMyPlayerID(), false)
-	if spec then 
+	if spec then
 		Echo("Newton Firezone disabled for spectator.")
 		widgetHandler:RemoveWidget(widget)
 	end
 end
 
 local function RemoveIfSpectator()
-	if GetSpectatingState() and (not IsCheatingEnabled()) then 
+	if GetSpectatingState() and (not IsCheatingEnabled()) then
 		Echo("Newton Firezone disabled for spectator.")
 		widgetHandler:RemoveWidget(widget) --input self (widget) because we are using handler=true,
 	end
@@ -808,29 +814,29 @@ function widget:UnitDestroyed(unitID)
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Puppy_NAME)
-		and (unitTeam==GetMyTeamID()) then
-			PuppyStack[unitID] = PuppyLandingController:new(unitID);
-		end
-		if (UnitDefs[unitDefID].name==Pyro_NAME or UnitDefs[unitDefID].name==Jack_NAME or UnitDefs[unitDefID].name==Constable_NAME)
-		and (unitTeam==GetMyTeamID()) then
-			JumperStack[unitID] = JumperLandingController:new(unitID);
-		end
+	if (UnitDefs[unitDefID].name==Puppy_NAME)
+			and (unitTeam==GetMyTeamID()) then
+		PuppyStack[unitID] = PuppyLandingController:new(unitID);
+	end
+	if (UnitDefs[unitDefID].name==Pyro_NAME or UnitDefs[unitDefID].name==Jack_NAME or UnitDefs[unitDefID].name==Constable_NAME)
+			and (unitTeam==GetMyTeamID()) then
+		JumperStack[unitID] = JumperLandingController:new(unitID);
+	end
 end
 
 function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[deepcopy(orig_key)] = deepcopy(orig_value)
+		end
+		setmetatable(copy, deepcopy(getmetatable(orig)))
+	else
+		copy = orig
+	end
+	return copy
 end
 
 local function AddTrajectoryEstimate(unitID)
@@ -864,7 +870,7 @@ end
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 	if victim[unitID] then --is current victim of any Newton group?
 		victim[unitID] = currentFrame + 90 --delete 3 second later (if nobody attack it afterward)
-		
+
 		--notify group that target is still being attacked
 		for group=1, groups.count do
 			if groupTarget[group] == unitID then
@@ -873,7 +879,7 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer)
 		end
 		--ech("still being attacked")
 	end
-	
+
 	if ((launchPredictLevel == 2) and damage == 0) or (launchPredictLevel == 3) or ((launchPredictLevel == 1) and victim[unitID]) then
 		--estimate trajectory of any unit hit by weapon
 		AddTrajectoryEstimate(unitID)
@@ -885,7 +891,7 @@ function widget:GameFrame(n)
 	if n%2 == 0 then
 		UpdateTransportedUnits()
 	end
-	
+
 	-- estimate for recently launched units
 	if queueTrajectoryEstimate["targetFrame"] == n then
 		for unitID,_ in pairs(queueTrajectoryEstimate["unitList"]) do
@@ -893,14 +899,14 @@ function widget:GameFrame(n)
 			queueTrajectoryEstimate["unitList"][unitID]=nil
 		end
 	end
-	
+
 	--empty whitelist to widget:UnitDamaged() monitoring
 	for unitID, frame in pairs(victim) do
 		if frame<=n then
 			victim[unitID] = nil
 		end
 	end
-	
+
 	if softEnabled then --is disabled if group is empty
 		-- update attack orders
 		if n % checkRate == 0 then
@@ -921,7 +927,7 @@ function widget:GameFrame(n)
 							if victimStillBeingAttacked[g] == unitID then --wait signal from UnitDamaged() that a unit is still being pushed
 								victimStillBeingAttacked[g] = nil--clear wait signal
 								unitToAttack = nil
-								break --wait for next frame until UnitDamaged() stop signalling wait. 
+								break --wait for next frame until UnitDamaged() stop signalling wait.
 								--NOTE: there is periodic pause when Newton reload in UnitDamaged() (every 0.2 second), this allowed the wait signal to be empty and prompted Newton-groups to retarget.
 							end
 
@@ -932,7 +938,7 @@ function widget:GameFrame(n)
 							end
 						end
 					end
-					if unitToAttack and (groupTarget[g]~=unitToAttack) then --there are target, and target is different than previous target (prevent command spam)? 
+					if unitToAttack and (groupTarget[g]~=unitToAttack) then --there are target, and target is different than previous target (prevent command spam)?
 						GiveOrderToUnitArray(newtons, CMD_ATTACK, {unitToAttack}, 0 ) --shoot unit
 						groupTarget[g] = unitToAttack --flag this group as having a target!
 						victimStillBeingAttacked[g] = nil --clear wait signal
@@ -946,7 +952,7 @@ function widget:GameFrame(n)
 							victimStillBeingAttacked[g] = nil --clear wait signal
 							GiveOrderToUnitArray(newtons, CMD_ATTACK, groupData.reaimPos, 0)
 						end
-						
+
 						if groupData.reaimTimer then
 							groupData.reaimTimer = groupData.reaimTimer + 1
 							if groupData.reaimTimer >= REAIM_TIME then
@@ -959,10 +965,10 @@ function widget:GameFrame(n)
 			end
 		end
 	end
-	
+
 	if (n%4 == 0)then
-	local myInfo ={GetPlayerInfo(myPlayerID)}
-	ping = myInfo[6]
+		local myInfo ={GetPlayerInfo(myPlayerID)}
+		ping = myInfo[6]
 		for VictimID,Puppy in pairs(PuppyStack) do
 			if(victimLandingLocation[VictimID])then
 				Puppy:setLandingLocation(victimLandingLocation[VictimID])
@@ -970,7 +976,7 @@ function widget:GameFrame(n)
 			Puppy:handle(currentFrame)
 		end
 	end
-	
+
 	if (n%10 == 0)then
 		for VictimID,Jumper in pairs(JumperStack) do
 			if(victimLandingLocation[VictimID])then
@@ -979,7 +985,7 @@ function widget:GameFrame(n)
 			Jumper:handle()
 		end
 	end
-	
+
 	if n % 150 == 0 then --recheck crash estimated location every 5 second
 		for victimID, _ in pairs (victimLandingLocation) do
 			local x,y,z = GetUnitPosition(victimID)
@@ -1036,7 +1042,7 @@ function widget:DrawWorld()
 	--for unitID, triangle in pairs ( newtonTrianglePoints) do
 	--	glBeginEnd(GL_LINE_STRIP, DrawTriangle, triangle)
 	--end
-	
+
 	------Crash location estimator---
 	for victimID, position in pairs (victimLandingLocation) do
 		local numAoECircles = 9
@@ -1048,12 +1054,12 @@ function widget:DrawWorld()
 			local alphamult = alpha*(1-proportion)
 			glColor(1, 0, 0,alphamult)
 			gl.PushMatrix()
-				gl.Translate(position[1],position[2],position[3])
-				gl.Scale(radius, radius, radius)
-				gl.CallList(circleList)
+			gl.Translate(position[1],position[2],position[3])
+			gl.Scale(radius, radius, radius)
+			gl.CallList(circleList)
 			gl.PopMatrix()
 		end
-	end	
+	end
 end
 
 ------Crash location estimator---
@@ -1065,7 +1071,7 @@ function EstimateCrashLocation(victimID, transportID)
 	if not UnitDefs[defID] or UnitDefs[defID].canFly then --if speccing with limited LOS or the unit can fly, then skip predicting trajectory.
 		return
 	end
-	
+
 	local xVel,yVel,zVel, compositeVelocity = GetUnitVelocity(transportID or victimID)
 	if not xVel then
 		return
@@ -1096,18 +1102,18 @@ end
 
 function widget:Initialize()
 	--IsSpectatorAndExit()
-	
-	local circleVertex = function() 
-			local circleDivs, PI = 64 , pi
-			for i = 1, circleDivs do
-				local theta = 2 * PI * i / circleDivs
-				glVertex(cos(theta), 0, sin(theta))
-			end
+
+	local circleVertex = function()
+		local circleDivs, PI = 64 , pi
+		for i = 1, circleDivs do
+			local theta = 2 * PI * i / circleDivs
+			glVertex(cos(theta), 0, sin(theta))
 		end
+	end
 	local circleDraw = 	function() glBeginEnd(GL.LINE_LOOP, circleVertex ) end --Reference: draw a circle , gui_attack_aoe.lua by Evil4Zerggin
 	circleList = gl.CreateList(circleDraw)
 	WG.NewtonFirezone_AddGroup = NewGroup
-	
+
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
 		unitID = units[i]
@@ -1129,7 +1135,7 @@ function widget:Shutdown()
 	if circleList then
 		gl.DeleteList(circleList)
 	end
-	
+
 	WG.NewtonFirezone_AddGroup = nil
 end
 ---------------------------------
@@ -1147,7 +1153,7 @@ function SimulateWithoutDrag(xVel,yVel,zVel, x,y,z,gravity)
 		local future_time = iterationSoFar*step
 		future_locationX =xVel*future_time
 		future_locationZ =zVel*future_time
-		future_height =(yVel)*future_time - (gravity/2)*future_time*future_time 
+		future_height =(yVel)*future_time - (gravity/2)*future_time*future_time
 		local groundHeight =GetGroundHeight(future_locationX+x,future_locationZ+z)
 		if gravity*future_time >= yVel then --is falling down phase?
 			reachApex = true
@@ -1160,40 +1166,40 @@ function SimulateWithoutDrag(xVel,yVel,zVel, x,y,z,gravity)
 	return future_locationX+x,future_height+y,future_locationZ+z
 end
 --b) complex balistic with airdrag
---SOURCE CODE copied from: 
+--SOURCE CODE copied from:
 --1) http://www2.hawaii.edu/~kjbeamer/
 --2) http://www.codeproject.com/Articles/19107/Flight-of-a-projectile
---Some Theory from: 
+--Some Theory from:
 --1) Kamalu J. Beamer ,"Projectile Motion Using Runge-Kutta Methods" PDF, 13 April 2013
 --2) Vit Buchta, "Flight of Projectile" CodeProject article, 8 Jun 2007
 --(No copyright licence was stated)
 
 local function Vec2dot(X,Y) --a function that takes dot products of two specific vectors X and Y
-  local tmp={hrzn=0,vert=0};
-  tmp.hrzn = X.hrzn * Y.hrzn;
-  tmp.vert = X.vert * Y.vert;
-  return(tmp.hrzn+ tmp.vert);
+	local tmp={hrzn=0,vert=0};
+	tmp.hrzn = X.hrzn * Y.hrzn;
+	tmp.vert = X.vert * Y.vert;
+	return(tmp.hrzn+ tmp.vert);
 end
 
 local function Vec2sum(X,Y) --a function that adds two specific vectors X and Y
-  local tmp={hrzn=0,vert=0};
-  tmp.hrzn = X.hrzn + Y.hrzn;
-  tmp.vert = X.vert + Y.vert;
-  return(tmp);
+	local tmp={hrzn=0,vert=0};
+	tmp.hrzn = X.hrzn + Y.hrzn;
+	tmp.vert = X.vert + Y.vert;
+	return(tmp);
 end
 
 local function Vec2sum4(W,X,Y,Z) --a function that sums four 3-vectors W,X,Y,Z
-  local tmp={hrzn=0,vert=0};
-  tmp.hrzn = W.hrzn + X.hrzn + Y.hrzn + Z.hrzn;
-  tmp.vert = W.vert + X.vert + Y.vert + Z.vert;
-  return(tmp);
+	local tmp={hrzn=0,vert=0};
+	tmp.hrzn = W.hrzn + X.hrzn + Y.hrzn + Z.hrzn;
+	tmp.vert = W.vert + X.vert + Y.vert + Z.vert;
+	return(tmp);
 end
 
 local function Scalar_vec2mult(X,Y) --a function that multiplies vector Y by double X
-  local tmp = {hrzn=0,vert=0};
-  tmp.hrzn = X * Y.hrzn;
-  tmp.vert = X * Y.vert;
-  return(tmp);
+	local tmp = {hrzn=0,vert=0};
+	tmp.hrzn = X * Y.hrzn;
+	tmp.vert = X * Y.vert;
+	return(tmp);
 end
 
 local function f_x(t,x,v) --gives the formal definition of v = dx/dt
@@ -1201,19 +1207,19 @@ local function f_x(t,x,v) --gives the formal definition of v = dx/dt
 end
 
 local function f_v(t,xold,vold,mass,area,gravity,airDensity) -- a function that returns acceleration as a function of x, v and all other variables; all based on force law
-  local tmp = {hrzn=0,vert=0};
-  local rho=1
-  local b=(1.0/2.0)*airDensity*area*rho;
-  local horizontalSign = -1*abs(vold.hrzn)/vold.hrzn
-  local verticalSign = -1*abs(vold.vert)/vold.vert
-  --MethodA: current spring implementation--
-  tmp.hrzn = (b/mass)*(vold.hrzn^2)*horizontalSign;--horizontal is back-and-forth movement
-  tmp.vert = -gravity+(b/mass)*(vold.vert^2)*verticalSign; --is vertical movement
-  --MethodB: ideal implementation (more accurate to real airdrag, not implemented in spring)--
-  -- local totalVelocity = math.sqrt(vold.hrzn^2+vold.vert^2)
-  -- tmp.hrzn = (b/mass)*(totalVelocity^2)*(vold.hrzn/totalVelocity)*horizontalSign;
-  -- tmp.vert = -g+(b/mass)*(totalVelocity^2)*(vold.vert/totalVelocity)*verticalSign; 
-  return(tmp);
+	local tmp = {hrzn=0,vert=0};
+	local rho=1
+	local b=(1.0/2.0)*airDensity*area*rho;
+	local horizontalSign = -1*abs(vold.hrzn)/vold.hrzn
+	local verticalSign = -1*abs(vold.vert)/vold.vert
+	--MethodA: current spring implementation--
+	tmp.hrzn = (b/mass)*(vold.hrzn^2)*horizontalSign;--horizontal is back-and-forth movement
+	tmp.vert = -gravity+(b/mass)*(vold.vert^2)*verticalSign; --is vertical movement
+	--MethodB: ideal implementation (more accurate to real airdrag, not implemented in spring)--
+	-- local totalVelocity = math.sqrt(vold.hrzn^2+vold.vert^2)
+	-- tmp.hrzn = (b/mass)*(totalVelocity^2)*(vold.hrzn/totalVelocity)*horizontalSign;
+	-- tmp.vert = -g+(b/mass)*(totalVelocity^2)*(vold.vert/totalVelocity)*verticalSign;
+	return(tmp);
 end
 
 --4th order Runge-Kutta algorithm--
@@ -1236,7 +1242,7 @@ local function VecFRK4xv(ytype,t,xold, vold,dt,mass,area,gravity,airDensity)
 	local k1x = Scalar_vec2mult(dt,f_x(t,xold,vold));
 	local k1v = Scalar_vec2mult(dt,f_v(t,xold,vold,mass,area,gravity,airDensity));
 	local k2x = Scalar_vec2mult(dt,f_x(t+dt/2.0,Vec2sum(xold,Scalar_vec2mult(0.5,k1x)),Vec2sum(vold,Scalar_vec2mult(0.5,k1v))));
-	local k2v = Scalar_vec2mult(dt,f_v(t+dt/2.0,Vec2sum(xold,Scalar_vec2mult(0.5,k1x)),Vec2sum(vold,Scalar_vec2mult(0.5,k1v)),mass,area,gravity,airDensity));  
+	local k2v = Scalar_vec2mult(dt,f_v(t+dt/2.0,Vec2sum(xold,Scalar_vec2mult(0.5,k1x)),Vec2sum(vold,Scalar_vec2mult(0.5,k1v)),mass,area,gravity,airDensity));
 	local k3x = Scalar_vec2mult(dt,f_x(t+dt/2.0,Vec2sum(xold,Scalar_vec2mult(0.5,k2x)),Vec2sum(vold,Scalar_vec2mult(0.5,k2v))));
 	local k3v = Scalar_vec2mult(dt,f_v(t+dt/2.0,Vec2sum(xold,Scalar_vec2mult(0.5,k2x)),Vec2sum(vold,Scalar_vec2mult(0.5,k2v)),mass,area,gravity,airDensity));
 	local k4x = Scalar_vec2mult(dt,f_x(t+dt,Vec2sum(xold,k3x),Vec2sum(vold,k3v)));
@@ -1254,7 +1260,7 @@ local function VecFRK4xv(ytype,t,xold, vold,dt,mass,area,gravity,airDensity)
 end
 
 function SimulateWithDrag(velX,velY,velZ, x,y,z, gravity,mass,radius, airDensity)
-	radius = radius *0.01 --in centi-elmo (centimeter, or 10^-2) instead of elmo. See Spring/rts/Sim/Objects/SolidObject.cpp  
+	radius = radius *0.01 --in centi-elmo (centimeter, or 10^-2) instead of elmo. See Spring/rts/Sim/Objects/SolidObject.cpp
 	local horizontalVelocity = sqrt(velX^2+velZ^2)
 	local horizontalAngle = atan2 (velX/horizontalVelocity, velZ/horizontalVelocity)
 	local hrznAngleCos = cos(horizontalAngle)
@@ -1266,7 +1272,7 @@ function SimulateWithDrag(velX,velY,velZ, x,y,z, gravity,mass,radius, airDensity
 	local vold={hrzn=0,vert=0}; --velocity
 	local currPosition = {x = x, y = 0, z = z}
 	local prevPosition = {x = 0, y = 0, z = 0}
-	
+
 	vold.hrzn = horizontalVelocity --initial horizontal component of velocity
 	vold.vert = velY --initial vertical component of velocity
 
@@ -1276,7 +1282,7 @@ function SimulateWithDrag(velX,velY,velZ, x,y,z, gravity,mass,radius, airDensity
 	--PRINT OUT A TABLE OF TRAJECTORY:
 	-- Echo("Time    dist-Pos    dist-Vel    vert-Pos    vert-Vel");
 	-- Echo(t0.. " " .. xold.hrzn .. " " .. vold.hrzn .. " " .. xold.vert .. " " .. vold.vert);
-	
+
 	local t0 = 0; --initial frame
 	local dt = 15; --frame increment
 	local Tmax = 1800 --max 2 minute
