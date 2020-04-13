@@ -600,7 +600,7 @@ local JumperLandingController = {
 
 	avoidCrash = function(self)
 
-		if (SIsUnitSelected(self.unitID))then
+		if (IsUnitSelected(self.unitID))then
 			return
 		end
 
