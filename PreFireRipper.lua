@@ -173,6 +173,7 @@ local RipperController = {
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
+								closestShieldRadius = targetShieldRadius
 							end
 							
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
