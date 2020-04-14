@@ -176,6 +176,7 @@ local RecluseController = {
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
 								closestShieldRadius = targetShieldRadius
+								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 							end
 							
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
