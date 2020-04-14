@@ -193,6 +193,7 @@ local FaradayController = {
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
+								closestShieldID = units[i]
 							end
 							
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
