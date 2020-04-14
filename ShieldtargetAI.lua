@@ -82,7 +82,7 @@ local CMD_ATTACK = CMD.ATTACK
 local ShieldTargettingController = {
 	allyTeamID = GetMyAllyTeamID(),
 	enemyNear = false,
-	extra_range = 0,
+	extra_range = 22,
 
 	new = function(self, unitID)
 		self = deepcopy(self)

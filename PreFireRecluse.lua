@@ -100,7 +100,7 @@ local RecluseController = {
 	end,
 	
 	isEnemyInRange = function (self)
-		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range, false)
+		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+22, false)
 		if  (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
 			if (self.enemyNear == false)then
 				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
