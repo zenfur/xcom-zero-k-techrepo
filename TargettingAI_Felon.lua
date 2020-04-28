@@ -110,7 +110,7 @@ local FelonController = {
 								if (target == nil) then
 									target = units[i]
 								end
-								if (UnitDefs[GetUnitDefID(target)].metalCost > UnitDefs[DefID].metalCost)then
+								if (UnitDefs[DefID].isAirUnit == true or UnitDefs[GetUnitDefID(target)].metalCost > UnitDefs[DefID].metalCost)then
 									target = units[i]
 								end
 							end
