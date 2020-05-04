@@ -71,7 +71,7 @@ local CloakToCloakSpotAI = {
 		self.unitID = unitID
 		self.range = UnitDefs[GetUnitDefID(self.unitID)].decloakDistance
 		self.pos = {GetUnitPosition(self.unitID)}
-		self.cooldownFrame = currentFrame+400
+		self.cooldownFrame = currentFrame+8
 		local unitDefID = GetUnitDefID(self.unitID)
 		self.reloadTime = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].reload
 		return self
@@ -101,7 +101,7 @@ local CloakToCloakSpotAI = {
 		local unitStates = GetUnitStates(self.unitID)
 		if(GetCommandQueue(self.unitID,0)==0)then
 			self.reloadState = GetUnitWeaponState(self.unitID, 1, "reloadState")
-			if(currentFrame >= self.reloadState-self.reloadTime+120)then
+			if(currentFrame >= self.reloadState-self.reloadTime+120 and currentFrame >= self.cooldownFrame)then
 				if(self:isEnemyInRange()==false)then
 					MarkerAddPoint (self.pos[1], self.pos[2], self.pos[3], "enemyCloakerNearby", true)
 					local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
@@ -162,7 +162,7 @@ end
 
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weaponDefID, projectileID, attackerID, attackerDefID, attackerTeam)
 	if (CloakerStack[unitID] and damage~=0)then
-		CloakerStack[unitID].cooldownFrame=currentFrame+40
+		CloakerStack[unitID].cooldownFrame=currentFrame+8
 	end
 end
 
