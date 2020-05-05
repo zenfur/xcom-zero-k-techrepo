@@ -18,6 +18,7 @@ local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 
 local Scythe_NAME = "cloakheavyraid"
+local Scythe_UnitDef = UnitDefNames[Scythe_NAME].id
 
 
 local GetUnitWeaponState = Spring.GetUnitWeaponState
@@ -56,13 +57,13 @@ local GetSpecState = Spring.GetSpectatingState
 
 
 function widget:UnitDecloaked(unitID, unitDefID, teamID)
-	if (UnitDefs[unitDefID].name==Scythe_NAME) then
+	if (unitDefID==Scythe_UnitDef) then
 		GiveOrderToUnit(unitID,CMD_FIRE_STATE, 2, 0)
 	end
 end 
 
 function widget:UnitCloaked(unitID, unitDefID, teamID)
-	if (UnitDefs[unitDefID].name==Scythe_NAME) then
+	if (unitDefID==Scythe_UnitDef) then
 		GiveOrderToUnit(unitID,CMD_FIRE_STATE, 1, 0)
 	end
 end 
