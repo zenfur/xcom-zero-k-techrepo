@@ -154,7 +154,6 @@ local SweeperController = {
 					if not(DefID == nil)then
 
 						if  (GetUnitIsDead(units[i]) == false)then
-							Echo(GetUnitRulesParam(units[i],"slowState"))
 							if (GetUnitRulesParam(units[i],"slowState")==nil)then
 								if(UnitDefs[DefID].metalCost < 140)then
 									target = units[i]
