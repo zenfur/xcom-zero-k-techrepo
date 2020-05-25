@@ -78,7 +78,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 	end,
 	
 	isThreatInRange = function (self)
-		if(GetUnitHealth(self.unitID)<self.maxHealth*0.3)then --is Health Critical?
+		if(GetUnitHealth(self.unitID)<self.maxHealth*0.1)then --is Health Critical?
 			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then --Health is critical
 				self.pos = {GetUnitPosition(self.unitID)}
 				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
@@ -112,7 +112,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 						if  (GetUnitIsDead(units[i]) == false) then
 							DefID = GetUnitDefID(units[i])
 							if not(DefID == nil)then
-								if(UnitDefs[DefID].metalCost >= 1500 and UnitDefs[DefID].isAirUnit==false)then
+								if(UnitDefs[DefID].name == Scorpion_NAME or UnitDefs[DefID].name == Ultimatum_NAME)then
 									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
 									self.cooldownFrame = currentFrame+40
 									return true
