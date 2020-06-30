@@ -85,18 +85,20 @@ local ShieldTargettingController = {
 	extra_range = 22,
 
 	new = function(self, unitID)
-		self = deepcopy(self)
-		self.unitID = unitID
-		self.range = GetUnitMaxRange(self.unitID)
-		self.pos = {GetUnitPosition(self.unitID)}
-		self.drec = false
-		local unitDefID = GetUnitDefID(self.unitID)
-		local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
-		local wd = WeaponDefs[weaponDefID]
-		if(weaponDefID and wd.damages[4])then
-			self.damage = wd.damages[4]
-			--Echo("ShieldTargettingController added:" .. unitID)
-			return self
+		if(unitID)then
+			self = deepcopy(self)
+			self.unitID = unitID
+			self.range = GetUnitMaxRange(self.unitID)
+			self.pos = {GetUnitPosition(self.unitID)}
+			self.drec = false
+			local unitDefID = GetUnitDefID(self.unitID)
+			local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
+			local wd = WeaponDefs[weaponDefID]
+			if(weaponDefID and wd.damages[4])then
+				self.damage = wd.damages[4]
+				--Echo("ShieldTargettingController added:" .. unitID)
+				return self
+			end
 		end
 		return nil
 	end,
