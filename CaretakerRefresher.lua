@@ -233,19 +233,20 @@ local CaretakerController = {
 	end,
 
 	handle=function(self)
-		Echo(self.currentJob)
-		if (GetUnitStates(self.unitID).movestate > 0) then
-			--[[ manage todo:
-				if guarding check if guard target is in range
-				if repairing check if repair target is in range
+		if (GetUnitStates(self.unitID).movestate == 0) then
+			return
+		end
+		--[[ manage todo:
+			if guarding check if guard target is in range
+			if repairing check if repair target is in range
 
 
-			--]]if (self.currentJob == JOB_OVERRIDE and self.jobTargetID)then
-			targetPositionX, targetPositionY, targetPositionZ = GetUnitPosition(self.jobTargetID)
+		--]]
+		if (self.currentJob == JOB_OVERRIDE and self.jobTargetID)then
+			local targetPositionX, targetPositionY, targetPositionZ = GetUnitPosition(self.jobTargetID)
 			if(distance(self.pos[1],self.pos[3],targetPositionX,targetPositionZ)>self.range)then
 				self.currentJob = JOB_IDLE
 			end
-		end
 			--Echo("Current job " .. self.currentJob)
 			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(self.unitID)
 				local jobs = self:findJobs() -- active job hunting
