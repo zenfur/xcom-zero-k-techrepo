@@ -93,7 +93,7 @@ local MexHuntController = {
 
 
 	handle = function(self)
-		ammoState = GetUnitRulesParam(self.unitID, "noammo")
+		local ammoState = GetUnitRulesParam(self.unitID, "noammo")
 		if (self.hunting and (ammoState==0 or ammoState==nil))then
 			self.pos = {GetUnitPosition(self.unitID)}
 			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
@@ -209,8 +209,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
+		local unitID = units[i]
+		local DefID = GetUnitDefID(unitID)
 		if (UnitDefs[DefID].name==Raven_NAME)  then
 			if  (RavenStack[unitID]==nil) then
 				RavenStack[unitID]=MexHuntController:new(unitID)
