@@ -122,6 +122,8 @@ local JOB_OVERRIDE = 4
 local JOB_GUARD = 5
 local JOB_IDLE = 999
 
+local selectedCaretakers
+
 local CaretakerController = {
 	unitID,
 	pos,
@@ -160,12 +162,12 @@ local CaretakerController = {
 	findJobs = function(self)
 		self.jobTargetID = nil
 		--Echo("Searching jobs...")
-		units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
-		wrecks = GetFeaturesInCylinder(self.pos[1], self.pos[3], self.range)
-		reclaim_job = false
-		sabotage_job = false
-		repair_job = false
-		build_job = false
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
+		local wrecks = GetFeaturesInCylinder(self.pos[1], self.pos[3], self.range)
+		local reclaim_job = false
+		local sabotage_job = false
+		local repair_job = false
+		local build_job = false
 
 		-- find ally build jobs in the area
 		-- is nanoframe
@@ -175,14 +177,14 @@ local CaretakerController = {
 		-- is nanoframe
 		-- find ally repair jobs in the area
 
-		max_dist = 0.0
-		total_metal = 0.0
+		local max_dist = 0.0
+		local total_metal = 0.0
 		for index, w in ipairs(wrecks) do
 			if w and GetFeatureHealth(w) then
-				metal  = select(1, GetFeatureResources(w))
-				resurrect_progress = select(3, GetFeatureHealth(w))
-				xx, yy, zz = GetFeaturePosition(w)
-				dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
+				local metal  = select(1, GetFeatureResources(w))
+				local resurrect_progress = select(3, GetFeatureHealth(w))
+				local xx, yy, zz = GetFeaturePosition(w)
+				local dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
 				if metal > 0 and resurrect_progress == 0 then
 					total_metal = total_metal + metal
 					if dist > max_dist then
@@ -194,8 +196,8 @@ local CaretakerController = {
 		end
 
 		for index, unit in ipairs(units) do
-			unitAlliance = GetUnitAllyTeam(unit)
-			hp, mxhp, _, _, bp = GetUnitHealth(unit)
+			local unitAlliance = GetUnitAllyTeam(unit)
+			local hp, mxhp, _, _, bp = GetUnitHealth(unit)
 			-- Echo("Unit alliance " .. unitAlliance .. " " .. self.allyTeamID)
 			if unitAlliance ~= self.allyTeamID then
 				if bp and bp < 1.0 then
@@ -246,7 +248,7 @@ local CaretakerController = {
 		end
 			--Echo("Current job " .. self.currentJob)
 			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(self.unitID)
-				jobs = self:findJobs() -- active job hunting
+				local jobs = self:findJobs() -- active job hunting
 				-- job selection
 				if jobs["sabotage"] then
 					--Echo("Selecting sabotage job")
@@ -344,8 +346,9 @@ end
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (string.match(UnitDefs[unitDefID].name, "dyn"))
 			and (unitTeam==GetMyTeamID()) then
-		originX, _, originZ = GetUnitPosition(unitID)
-		Echo("Commander found, initializing X, Y, Z as " .. originX .. " " .. _ .. " " .. originZ)
+		local y
+		originX, y, originZ = GetUnitPosition(unitID)
+		Echo("Commander found, initializing X, Y, Z as " .. originX .. " " .. y .. " " .. originZ)
 	end
 end
 
@@ -393,7 +396,7 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==target_name)  then
 			if  (UnitRegister[units[i]]==nil) then
 				UnitRegister[units[i]]=CaretakerController:new(units[i])
