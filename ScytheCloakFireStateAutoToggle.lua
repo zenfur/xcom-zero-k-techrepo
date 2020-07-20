@@ -17,8 +17,7 @@ local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 
-local Scythe_NAME = "cloakheavyraid"
-local Scythe_UnitDef = UnitDefNames[Scythe_NAME].id
+local Scythe_ID = UnitDefNames.cloakheavyraid.id
 
 
 local GetUnitWeaponState = Spring.GetUnitWeaponState
@@ -57,16 +56,16 @@ local GetSpecState = Spring.GetSpectatingState
 
 
 function widget:UnitDecloaked(unitID, unitDefID, teamID)
-	if (unitDefID==Scythe_UnitDef) then
+	if (unitDefID==Scythe_ID) then
 		GiveOrderToUnit(unitID,CMD_FIRE_STATE, 2, 0)
 	end
-end 
+end
 
 function widget:UnitCloaked(unitID, unitDefID, teamID)
-	if (unitDefID==Scythe_UnitDef) then
+	if (unitDefID==Scythe_ID) then
 		GiveOrderToUnit(unitID,CMD_FIRE_STATE, 1, 0)
 	end
-end 
+end
 
 
 -- The rest of the code is there to disable the widget for spectators
