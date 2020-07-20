@@ -82,10 +82,7 @@ local cmdSetBombWayPoint = {
 
 local FactoryWaypointControllerMT
 local FactoryWaypointController = {
-	unitID,
-	pos,
 	allyTeamID = GetMyAllyTeamID(),
-	targetParams = nil,
 
 
 	new = function(index, unitID)

@@ -213,7 +213,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Artemis_NAME)  then
 			if  (ArtemisStack[units[i]]==nil) then
 				ArtemisStack[units[i]]=ArtemisController:new(units[i])

@@ -23,7 +23,7 @@ function widget:GetInfo() return {
             .. cmd_dsc .. "\n"
             .. " \n"
             .. "  The command is added with the same shortkey as for Reclaim command.\n"
-    	    .. "The widget computes optimal positions for each Swift to attack an area around a selected point.\n"
+            .. "The widget computes optimal positions for each Swift to attack an area around a selected point.\n"
             .. 'If the attack force is far enough, it also queues a set of \"correctional checkpoints\" Swifts have '
             .. "to pass through, which makes the final formation more focused at the center of attacking area.\n"
             .. "  It also automatically manages Fly/Land states unless a toggle was issued manually.\n"
@@ -381,7 +381,7 @@ function widget:Initialize()
     DisableForSpec()
     local units = GetTeamUnits(GetMyTeamID())
     for i = 1, #units do
-        unit_id = units[i]
+        local unit_id = units[i]
         if (UnitDefs[GetUnitDefID(unit_id)].name == SWIFT_NAME) then
             if (land_attacker_controllers[unit_id] == nil) then
                 land_attacker_controllers[unit_id] = LandAttackerController:new(unit_id)
