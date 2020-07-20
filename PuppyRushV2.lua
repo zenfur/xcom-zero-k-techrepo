@@ -171,9 +171,9 @@ local RushController = {
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
 					target = units[i]
-					DefID = GetUnitDefID(target)
+					local DefID = GetUnitDefID(target)
 					if(DefID)then
-						hp, mxhp, _, _, bp = GetUnitHealth(units[i])
+						local hp, mxhp, _, _, bp = GetUnitHealth(units[i])
 						local hasArmor = GetUnitArmored(units[i])
 						if (target==self.forceTarget or (GetUnitHealth(target) and GetUnitHealth(target)<=PuppyDamage and UnitDefs[DefID].metalCost > 51 and hasArmor == false and bp>0.8))then
 							GiveOrderToUnit(self.unitID, CMD_ATTACK, target, 0)
@@ -200,9 +200,9 @@ local RushController = {
 			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], (self.range-10)*jumps)
 			for i=1, #units do
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					DefID = GetUnitDefID(units[i])
+					local DefID = GetUnitDefID(units[i])
 					if not(DefID == nil)then
-						hp, mxhp, _, _, bp = GetUnitHealth(units[i])
+						local hp, mxhp, _, _, bp = GetUnitHealth(units[i])
 						local hasArmor = GetUnitArmored(units[i])
 						if  (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].metalCost > 51 and bp > 0.8 and hasArmor == false and not(UnitDefs[DefID].name==Swift_NAME or UnitDefs[DefID].name==Owl_NAME)) then
 							target = units[i]
@@ -217,10 +217,10 @@ local RushController = {
 				local enemyPosition = {GetUnitPosition(target)}
 				local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
 				local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
-				velocity = {GetUnitVelocity(self.unitID)}
+				local velocity = {GetUnitVelocity(self.unitID)}
 
-				local targetPosRelative = {}
-				local targetPosRelative2 = {}
+				local targetPosRelative
+				local targetPosRelative2
 				if(abs(velocity[1])+abs(velocity[3])>3)then
 					if(self.pos[3]<=enemyPosition[3])then
 						targetPosRelative={
@@ -259,8 +259,8 @@ local RushController = {
 					}
 				end
 
-				local targetPosAbsolute = {}
-				local movePosAbsolute = {}
+				local targetPosAbsolute
+				local movePosAbsolute
 
 				if (self.pos[3]<=enemyPosition[3]) then
 					targetPosAbsolute = {
@@ -358,7 +358,7 @@ function widget:GameFrame(n)
 	end
 end
 
-function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weaponDefID, projectileID, attackerID, attackerDefID, attackerTeam)
+function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weaponDefID_, projectileID, attackerID, attackerDefID, attackerTeam)
 	if (PuppyStack[unitID] and damage~=15 and damage~=0)then
 		PuppyStack[unitID]:toggleOn()
 	end
@@ -463,8 +463,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
+		local unitID = units[i]
+		local DefID = GetUnitDefID(unitID)
 		if (UnitDefs[DefID].name==Puppy_NAME)  then
 			if  (PuppyStack[unitID]==nil) then
 				PuppyStack[unitID]=RushController:new(unitID)

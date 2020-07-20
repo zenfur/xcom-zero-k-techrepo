@@ -117,7 +117,7 @@ local FaradayController = {
 	isEnemyInEffectiveRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
 		if(enemyUnitID)then
-			DefID = GetUnitDefID(enemyUnitID)
+			local DefID = GetUnitDefID(enemyUnitID)
 			if not(DefID == nil)then
 				if (GetUnitIsDead(enemyUnitID) == false and UnitDefs[DefID].isAirUnit==false) then
 					local enemyPosition = {GetUnitPosition(enemyUnitID)}
@@ -133,8 +133,8 @@ local FaradayController = {
 						cos(rotation)*(self.range-50),
 					}
 
-					local targetPosAbsolute = {}
-					local testTargetPosAbsolute = {}
+					local targetPosAbsolute
+					local testTargetPosAbsolute
 					if (self.pos[3]<=enemyPosition[3]) then
 						targetPosAbsolute = {
 							self.pos[1]+targetPosRelative[1],
@@ -173,12 +173,13 @@ local FaradayController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
+		local closestShieldRadius, rotation
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
@@ -192,7 +193,7 @@ local FaradayController = {
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -219,7 +220,7 @@ local FaradayController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
@@ -293,7 +294,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = Spring.GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Faraday_NAME)  then
 			if  (FaradayStack[units[i]]==nil) then
 				FaradayStack[units[i]]=FaradayController:new(units[i])

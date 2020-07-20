@@ -115,7 +115,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Imp_NAME or UnitDefs[DefID].name==Snitch_NAME)  then
 			if  (BurrowBombStack[units[i]]==nil) then
 				BurrowBombStack[units[i]]=BurrowAttackController:new(units[i])

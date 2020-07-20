@@ -201,8 +201,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
+		local unitID = units[i]
+		local DefID = GetUnitDefID(unitID)
 		if (UnitDefs[DefID].name==Halbert_NAME)  then
 			if  (HalbertStack[unitID]==nil) then
 				HalbertStack[unitID]=AttackModeController:new(unitID)

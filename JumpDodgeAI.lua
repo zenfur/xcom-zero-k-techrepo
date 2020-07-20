@@ -199,7 +199,7 @@ end
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	custom = UnitDefs[unitDefID].customParams
+	local custom = UnitDefs[unitDefID].customParams
 	if(unitTeam==GetMyTeamID() and UnitDefs[unitDefID].isBuilding == false and custom.canjump and custom.canjump=='1' and not(UnitDefs[unitDefID].name==Jugglenaut_NAME or UnitDefs[unitDefID].name==Scuttle_NAME)) then
 		UnitStack[unitID] = JumpToAvoidSuiciderController:new(unitID);
 	end
@@ -233,8 +233,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		unitDefID = GetUnitDefID(units[i])
-		custom = UnitDefs[unitDefID].customParams
+		local unitDefID = GetUnitDefID(units[i])
+		local custom = UnitDefs[unitDefID].customParams
 		if(custom.canjump and UnitDefs[unitDefID].isBuilding == false and custom.canjump=='1' and not(UnitDefs[unitDefID].name==Jugglenaut_NAME or UnitDefs[unitDefID].name==Scuttle_NAME or UnitDefs[unitDefID].name==Dirtbag_NAME)) then
 			UnitStack[units[i]] = JumpToAvoidSuiciderController:new(units[i]);
 		end

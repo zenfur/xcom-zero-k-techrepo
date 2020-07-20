@@ -172,15 +172,15 @@ local transportController = {
 			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 50)
 			for i=1, #units do
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					DefID = GetUnitDefID(units[i])
+					local DefID = GetUnitDefID(units[i])
 					if not(DefID == nil)then
 						if (UnitDefs[DefID].canFly == false and not( UnitDefs[DefID].name == Claymore_NAME))then
-							transportedUnit = GetUnitIsTransporting(self.unitID)
+							local transportedUnit = GetUnitIsTransporting(self.unitID)
 							if (transportedUnit[1] == nil) then
 								--Echo("No unit being transported")
 								return
 							end
-							transportedUnitID = transportedUnit[1]
+							local transportedUnitID = transportedUnit[1]
 							DefID = GetUnitDefID(transportedUnitID)
 							if (UnitDefs[DefID].name == Claymore_NAME) then
 								if(self.reloadZone and self.autoReloadToggle)then
@@ -244,14 +244,14 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_DROP_CLAYMORE_BOMB)then
 			for i=1, #selectedTransports do
 				repeat
-					transportedUnit = GetUnitIsTransporting(selectedTransports[i])
+					local transportedUnit = GetUnitIsTransporting(selectedTransports[i])
 					if (transportedUnit[1] == nil) then
 						--Echo("No unit being transported")
 						i=i+1
 						break
 					end
-					transportedUnitID = transportedUnit[1]
-					DefID = GetUnitDefID(transportedUnitID)
+					local transportedUnitID = transportedUnit[1]
+					local DefID = GetUnitDefID(transportedUnitID)
 					if (UnitDefs[DefID].name == Claymore_NAME or UnitDefs[DefID].name == Limpet_NAME or UnitDefs[DefID].name == Snitch_NAME or UnitDefs[DefID].name == Imp_NAME or UnitDefs[DefID].name == Scuttle_NAME) then
 						if(TransporterStack[selectedTransports[i]] and TransporterStack[selectedTransports[i]].reloadZone and TransporterStack[selectedTransports[i]].autoReloadToggle)then
 							--Unit is sent to reloadzone--
@@ -279,21 +279,21 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_RELOAD_CLAYMORE)then
 			for i=1, #selectedTransports do
 				repeat
-					transportedUnit = GetUnitIsTransporting(selectedTransports[i])
+					local transportedUnit = GetUnitIsTransporting(selectedTransports[i])
 					if (transportedUnit[1] == nil) then
 						Echo("No unit being transported")
 						i=i+1
 						break
 					end
-					transportedUnitID = transportedUnit[1]
-					DefID = GetUnitDefID(transportedUnitID)
+					local transportedUnitID = transportedUnit[1]
+					local DefID = GetUnitDefID(transportedUnitID)
 					if (UnitDefs[DefID].name == Claymore_NAME) then
 
 						local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
 						if(currentFrame >= reloadState)then
 							break --already loaded
 						else
-							position = {GetUnitPosition(selectedTransports[i])}
+							local position = {GetUnitPosition(selectedTransports[i])}
 							GiveOrderToUnit(selectedTransports[i], CMD_UNLOAD_UNITS, {position[1], GetGroundHeight(position[1], position[3]), position[3], 1},0)
 							reloaderStack[selectedTransports[i]] = reloadController:new(selectedTransports[i], transportedUnitID, reloadState);
 						end
@@ -398,8 +398,8 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
+		local unitID = units[i]
+		local DefID = GetUnitDefID(unitID)
 		if (UnitDefs[DefID].name==Charon_NAME or UnitDefs[DefID].name==Hercules_NAME) then
 			TransporterStack[unitID] = transportController:new(unitID);
 		end

@@ -149,7 +149,7 @@ local SweeperController = {
 				nil,
 				targetPosRelative[3]+self.pos[3],
 				}
-				testTargetPosAbsolute = {
+				local testTargetPosAbsolute = {
 					self.pos[1]+testTargetPosRelative[1],
 					nil,
 					self.pos[3]+testTargetPosRelative[3],
@@ -179,12 +179,12 @@ local SweeperController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}

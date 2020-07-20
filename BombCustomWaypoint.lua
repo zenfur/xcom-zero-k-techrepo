@@ -238,7 +238,7 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Jumpfac_NAME or UnitDefs[DefID].name==Shieldfac_NAME or UnitDefs[DefID].name==Amphfac_NAME or UnitDefs[DefID].name==Cloakfac_NAME or UnitDefs[DefID].name==Gunshipfac_NAME)  then
 			if  (FactoryStack[units[i]]==nil) then
 				FactoryStack[units[i]]=FactoryWaypointController:new(units[i])

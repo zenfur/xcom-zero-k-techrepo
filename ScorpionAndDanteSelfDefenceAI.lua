@@ -77,7 +77,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isThreatInRange = function (self)
 		if(GetUnitHealth(self.unitID)<self.maxHealth*0.1)then --is Health Critical?
 			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then --Health is critical
@@ -86,15 +86,15 @@ local ScorpionAndDanteSelfDefenceAI = {
 				for i=1, #units do
 					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 						if  (GetUnitIsDead(units[i]) == false) then
-							DefID = GetUnitDefID(units[i])
+							local DefID = GetUnitDefID(units[i])
 							if not(DefID == nil)then
 								if(UnitDefs[DefID].metalCost >= 1500 and UnitDefs[DefID].isAirUnit==false)then
 									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
 									self.cooldownFrame = currentFrame+40
 									return true
 								end
-								enemyposition = {GetUnitPosition(units[i])}
-								if (#GetUnitsInSphere(enemyposition[1],enemyposition[2],enemyposition[3], 180, self.allyTeamID)==0)then	
+								local enemyposition = {GetUnitPosition(units[i])}
+								if (#GetUnitsInSphere(enemyposition[1],enemyposition[2],enemyposition[3], 180, self.allyTeamID)==0)then
 									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
 									self.cooldownFrame = currentFrame+40
 									return true
@@ -111,7 +111,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 				for i=1, #units do
 					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 						if  (GetUnitIsDead(units[i]) == false) then
-							DefID = GetUnitDefID(units[i])
+							local DefID = GetUnitDefID(units[i])
 							if not(DefID == nil)then
 								if(UnitDefs[DefID].name == Scorpion_NAME or UnitDefs[DefID].name == Ultimatum_NAME)then
 									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
@@ -169,7 +169,7 @@ function widget:Initialize()
 	team_id = Spring.GetMyTeamID()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Scorpion_NAME or UnitDefs[DefID].name==Dante_NAME) then
 			if  (StriderStack[units[i]]==nil) then
 				StriderStack[units[i]]=ScorpionAndDanteSelfDefenceAI:new(units[i])

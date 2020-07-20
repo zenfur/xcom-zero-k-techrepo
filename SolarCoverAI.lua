@@ -75,7 +75,7 @@ local SolarAI = {
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then
-					DefID = GetUnitDefID(units[i])
+					local DefID = GetUnitDefID(units[i])
 					if (DefID ~= nil and not(UnitDefs[DefID].isBuilder and UnitDefs[DefID].energyStorage == 0 and UnitDefs[DefID].name~=Welder_NAME
 					or UnitDefs[DefID].name==Swift_NAME
 					or UnitDefs[DefID].name==Raptor_NAME
@@ -159,7 +159,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Solar_NAME)  then
 			if  (SolarStack[units[i]]==nil) then
 				SolarStack[units[i]]=SolarAI:new(units[i])

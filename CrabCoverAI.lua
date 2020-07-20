@@ -75,7 +75,7 @@ local CrabAI = {
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if  (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].isBuilding == false) then
 						if(IsUnitSelected(self.unitID) == false or UnitDefs[DefID].name==Raven_NAME) then
@@ -165,7 +165,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Crab_NAME)  then
 			if  (CrabStack[units[i]]==nil) then
 				CrabStack[units[i]]=CrabAI:new(units[i])

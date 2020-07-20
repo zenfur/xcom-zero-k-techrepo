@@ -79,7 +79,7 @@ local RazorAI = {
 			for i=1, #units do
 				if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					if  (GetUnitIsDead(units[i]) == false) then
-						DefID = GetUnitDefID(units[i])
+						local DefID = GetUnitDefID(units[i])
 						if (DefID ~= nil and not(UnitDefs[DefID].isBuilder and UnitDefs[DefID].energyStorage == 0
 						or UnitDefs[DefID].isAirUnit
 						or string.match(UnitDefs[DefID].name, "aa")
@@ -152,7 +152,7 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Razor_NAME)  then
 			if  (RazorStack[units[i]]==nil) then
 				RazorStack[units[i]]=RazorAI:new(units[i])
