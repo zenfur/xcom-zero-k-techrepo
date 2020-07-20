@@ -56,7 +56,6 @@ LIBS_PATH = "LuaUI/Widgets/Libs"
 
 VFS.Include(LIBS_PATH .. "/cmd.lua")
 if is_debug then VFS.Include(LIBS_PATH .. "/table_to_string.lua") end
-VFS.Include(LIBS_PATH .. "/deepcopy.lua")
 VFS.Include(LIBS_PATH .. "/vector.lua")
 
 ----------------------------------------------------------------------------------------------------------------------
