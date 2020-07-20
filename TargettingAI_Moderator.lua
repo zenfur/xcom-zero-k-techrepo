@@ -52,6 +52,7 @@ local CMD_ATTACK = CMD.ATTACK
 
 
 
+local ModeratorControllerMT
 local ModeratorController = {
 	unitID,
 	pos,
@@ -59,11 +60,12 @@ local ModeratorController = {
 	range,
 	damage,
 	forceTarget,
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("ModeratorController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, ModeratorControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -79,17 +81,17 @@ local ModeratorController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-			
+
 				enemyPosition = {GetUnitPosition(units[i])}
 				if(enemyPosition[2]>-30)then
 					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
@@ -100,11 +102,11 @@ local ModeratorController = {
 						if not(DefID == nil)then
 						if  (GetUnitIsDead(units[i]) == false)then
 							local hasArmor = GetUnitArmored(units[i])
-							if not(UnitDefs[DefID].name == Solar_NAME 
-							or UnitDefs[DefID].name == Wind_NAME 
+							if not(UnitDefs[DefID].name == Solar_NAME
+							or UnitDefs[DefID].name == Wind_NAME
 							or UnitDefs[DefID].name == Badger_Mine_NAME
-							or (UnitDefs[DefID].name == Razor_NAME 
-							or UnitDefs[DefID].name == Gauss_NAME 
+							or (UnitDefs[DefID].name == Razor_NAME
+							or UnitDefs[DefID].name == Gauss_NAME
 							or UnitDefs[DefID].name == Faraday_NAME
 							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor
 							or UnitDefs[DefID].name == Metal_NAME) then
@@ -114,7 +116,7 @@ local ModeratorController = {
 								if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
 									target = units[i]
 								end
-								
+
 							end
 						end
 					end
@@ -129,7 +131,7 @@ local ModeratorController = {
 			return true
 		end
 	end,
-	
+
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
@@ -142,19 +144,19 @@ local ModeratorController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
+
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -163,7 +165,7 @@ local ModeratorController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -194,7 +196,7 @@ local ModeratorController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		end
 	end,
-	
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate==1)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -205,6 +207,7 @@ local ModeratorController = {
 		end
 	end
 }
+ModeratorControllerMT = {__index = ModeratorController}
 
 function distance ( x1, y1, x2, y2 )
   local dx = (x1 - x2)
@@ -234,37 +237,19 @@ function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (ModeratorStack[unitID]==nil) then
 		ModeratorStack[unitID]=ModeratorStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 	
+function widget:GameFrame(n)
 	--if (n%UPDATE_FRAME==0) then
-		for _,moderator in pairs(ModeratorStack) do 
+		for _,moderator in pairs(ModeratorStack) do
 			moderator:handle()
 		end
 	--end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

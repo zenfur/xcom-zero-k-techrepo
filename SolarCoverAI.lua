@@ -46,16 +46,18 @@ local GetSpecState = Spring.GetSpectatingState
 local CMD_STOP = CMD.STOP
 local CMD_ONOFF = 35667
 
+local SolarAIMT
 local SolarAI = {
 	unitID,
 	pos,
 	allyTeamID = GetMyAllyTeamID(),
 	range = 450,
 	enemyNear = false,
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("SolarAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, SolarAIMT)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
 		return self
@@ -67,7 +69,7 @@ local SolarAI = {
 		return nil
 	end,
 
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
 		for i=1, #units do
@@ -107,12 +109,13 @@ local SolarAI = {
 		self.enemyNear = false
 		return false
 	end,
-	
-	
+
+
 	handle = function(self)
 		self:isEnemyInRange()
 	end
 }
+SolarAIMT = {__index=SolarAI}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
@@ -135,30 +138,13 @@ function widget:UnitDestroyed(unitID)
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,solar in pairs(SolarStack) do
 			solar:handle()
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 
 -- The rest of the code is there to disable the widget for spectators

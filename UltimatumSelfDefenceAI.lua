@@ -46,6 +46,7 @@ local CMD_ATTACK_MOVE_ID = 16
 local GetSpecState = Spring.GetSpectatingState
 
 
+local UltimatumSelfDefenceAIMT
 local UltimatumSelfDefenceAI = {
 	unitID,
 	pos,
@@ -55,10 +56,11 @@ local UltimatumSelfDefenceAI = {
 	reloadTime,
 	enemyNear = false,
 
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("UltimatumSelfDefenceAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, UltimatumSelfDefenceAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -73,7 +75,7 @@ local UltimatumSelfDefenceAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isThreatInRange = function (self)
 		if(GetUnitIsCloaked(self.unitID)==false)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -95,8 +97,9 @@ local UltimatumSelfDefenceAI = {
 		return false
 	end
 }
+UltimatumSelfDefenceAIMT = {__index = UltimatumSelfDefenceAI}
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	for _,Strider in pairs(StriderStack) do
 		Strider:isThreatInRange()
 	end
@@ -123,7 +126,7 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weap
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 end
 

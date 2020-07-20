@@ -73,6 +73,7 @@ local cmdLandAttack = {
 }
 
 
+local landAttackControllerMT
 local landAttackController = {
 	unitID,
 	pos,
@@ -83,9 +84,10 @@ local landAttackController = {
 	creationSpot,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("landAttackController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, landAttackControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -111,6 +113,7 @@ local landAttackController = {
 		--
 	end
 }
+landAttackControllerMT = {__index = landAttackController}
 
 function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then

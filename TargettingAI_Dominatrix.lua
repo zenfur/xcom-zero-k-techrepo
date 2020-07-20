@@ -45,17 +45,19 @@ local CMD_ATTACK = CMD.ATTACK
 
 
 
+local DominatrixControllerMT
 local DominatrixController = {
 	unitID,
 	pos,
 	allyTeamID = GetMyAllyTeamID(),
 	range,
 	forceTarget,
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("DominatrixController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, DominatrixControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -68,11 +70,11 @@ local DominatrixController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		local target = nil
@@ -81,7 +83,7 @@ local DominatrixController = {
 		local targetMaxHealth = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-			
+
 				if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
 					GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 					return true
@@ -90,14 +92,14 @@ local DominatrixController = {
 				if not(DefID == nil)then
 					local enemyHealthStats = {GetUnitHealth(units[i])}
 					local enemyBuildProgress = enemyHealthStats[5]
-					
+
 					if  (enemyBuildProgress and GetUnitIsDead(units[i]) == false and enemyBuildProgress >=0.80 and
-					not(UnitDefs[DefID].name == Solar_NAME 
-					or UnitDefs[DefID].name == Wind_NAME 
-					or UnitDefs[DefID].name == Flea_NAME 
-					or UnitDefs[DefID].name == Dirtbag_NAME 
+					not(UnitDefs[DefID].name == Solar_NAME
+					or UnitDefs[DefID].name == Wind_NAME
+					or UnitDefs[DefID].name == Flea_NAME
+					or UnitDefs[DefID].name == Dirtbag_NAME
 					or UnitDefs[DefID].name == Metal_NAME)) then
-					
+
 						local enemyMaxHealth = enemyHealthStats[2]
 						local enemyRemainingHealth = enemyHealthStats[1]
 						local enemyCaptureProgress = enemyHealthStats[4]
@@ -109,15 +111,15 @@ local DominatrixController = {
 							targetMaxHealth = enemyMaxHealth
 							targetRemainingHealth = enemyRemainingHealth
 							targetCaptureProgress = enemyCaptureProgress
-						elseif(targetCaptureProgress 
-						and targetRemainingHealth*(2-targetCaptureProgress)*(2+targetRemainingHealth/targetMaxHealth)/UnitDefs[GetUnitDefID(target)].metalCost 
+						elseif(targetCaptureProgress
+						and targetRemainingHealth*(2-targetCaptureProgress)*(2+targetRemainingHealth/targetMaxHealth)/UnitDefs[GetUnitDefID(target)].metalCost
 						   > enemyRemainingHealth*(2-enemyCaptureProgress)*(2+enemyRemainingHealth/enemyMaxHealth)/UnitDefs[DefID].metalCost)then
 							target = units[i]
 							targetMaxHealth = enemyMaxHealth
 							targetRemainingHealth = enemyRemainingHealth
 							targetCaptureProgress = enemyCaptureProgress
 						end
-						
+
 					end
 				end
 			end
@@ -130,7 +132,7 @@ local DominatrixController = {
 			return true
 		end
 	end,
-	
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate==1)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -138,6 +140,7 @@ local DominatrixController = {
 		end
 	end
 }
+DominatrixControllerMT = {__index = DominatrixController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Dominatrix_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
@@ -154,37 +157,19 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (DominatrixStack[unitID]==nil) then
 		DominatrixStack[unitID]=DominatrixStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
-		for _,Dominatrix in pairs(DominatrixStack) do 
+		for _,Dominatrix in pairs(DominatrixStack) do
 			Dominatrix:handle()
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
@@ -211,4 +196,3 @@ end
 function widget:PlayerChanged (playerID)
 	DisableForSpec()
 end
-

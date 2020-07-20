@@ -70,6 +70,7 @@ local cmdForcePreFire = {
 }
 
 
+local KodachiControllerMT
 local KodachiController = {
 	unitID,
 	pos,
@@ -80,9 +81,10 @@ local KodachiController = {
 	damage,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("KodachiController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, KodachiControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)-6
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -330,6 +332,7 @@ local KodachiController = {
 		end
 	end
 }
+KodachiControllerMT = {__index = KodachiController}
 
 function distance ( x1, y1, x2, y2 )
 	local dx = (x1 - x2)
@@ -369,22 +372,6 @@ function widget:GameFrame(n)
 			kodachi:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 --- COMMAND HANDLING

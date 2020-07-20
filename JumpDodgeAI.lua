@@ -51,6 +51,7 @@ local CMD_ATTACK = CMD.ATTACK
 local CMD_JUMP = 38521
 
 
+local JumpToAvoidSuiciderControllerMT
 local JumpToAvoidSuiciderController = {
 	unitID,
 	pos,
@@ -62,9 +63,10 @@ local JumpToAvoidSuiciderController = {
 	unitCost,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("JumpToAvoidSuiciderController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,JumpToAvoidSuiciderControllerMT)
 		self.unitID = unitID
 		local unitDefID = GetUnitDefID(self.unitID)
 		self.jumpRange = UnitDefs[unitDefID].customParams.jump_range
@@ -185,6 +187,7 @@ local JumpToAvoidSuiciderController = {
 		end
 	end
 }
+JumpToAvoidSuiciderControllerMT={__index=JumpToAvoidSuiciderController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (cmdID == CMD_JUMP) then
@@ -218,24 +221,6 @@ function widget:GameFrame(n)
 	end
 end
 
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
-
-
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
@@ -260,4 +245,3 @@ end
 function widget:PlayerChanged (playerID)
 	DisableForSpec()
 end
-

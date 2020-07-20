@@ -51,6 +51,7 @@ local CMD_ATTACK = CMD.ATTACK
 
 
 
+local LanceControllerMT
 local LanceController = {
 	unitID,
 	pos,
@@ -59,9 +60,10 @@ local LanceController = {
 	forceTarget,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("LanceController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, LanceControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -169,6 +171,7 @@ local LanceController = {
 		end
 	end
 }
+LanceControllerMT = {__index = LanceController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Lance_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
@@ -198,24 +201,6 @@ function widget:GameFrame(n)
 		end
 	end
 end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

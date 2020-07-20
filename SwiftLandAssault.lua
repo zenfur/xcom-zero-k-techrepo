@@ -60,23 +60,24 @@ local cmdLandAttack = {
 	tooltip = 'Makes Swift land optimally to fire at target area.',
 	cursor  = 'Attack',
 	action  = 'reclaim',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
-
+local landAttackControllerMT
 local landAttackController = {
 	unitID,
 	pos,
 	allyTeamID = GetMyAllyTeamID(),
 	range,
 	targetParams,
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("landAttackController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, landAttackControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -88,12 +89,12 @@ local landAttackController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setTargetParams = function (self, params)
 		self.targetParams = params
 	end,
-	
-	
+
+
 	landAttack = function(self)
 	self.pos = {GetUnitPosition(self.unitID)}
 	local rotation = atan((self.pos[1]-self.targetParams[1])/(self.pos[3]-self.targetParams[3]))
@@ -104,27 +105,28 @@ local landAttackController = {
 		}
 
 		local targetPosAbsolute = {}
-		
+
 		if (self.pos[3]<=self.targetParams[3]) then
 			targetPosAbsolute = {
 				self.targetParams[1]-targetPosRelative[1],
 				nil,
 				self.targetParams[3]-targetPosRelative[3],
 			}
-			
+
 		else
 			targetPosAbsolute = {
 				self.targetParams[1]+targetPosRelative[1],
 				nil,
 				self.targetParams[3]+targetPosRelative[3],
 			}
-			
+
 		end
 		targetPosAbsolute[2] = GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 		GiveOrderToUnit(self.unitID, CMD_TOGGLE_FLIGHT, 1, {""}, 0)
 		GiveOrderToUnit(self.unitID, CMD_MOVE, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
 	end
 }
+landAttackControllerMT = {__index = landAttackController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
@@ -134,26 +136,10 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (SwiftStack[unitID]==nil) then
 		SwiftStack[unitID]=SwiftStack[unitID]:unset();
 	end
-end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)

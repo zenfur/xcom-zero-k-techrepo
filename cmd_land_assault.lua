@@ -129,26 +129,26 @@ local mission_control = {
     rotation,
     --- Where the phalanx starts.
     base_rotation,
-    
+
     --- Sets `target_pos`, computes and sets `cluster_pos` and `rotation`.
     process_target = function(self, target_pos)
         self.target_pos = target_pos
-        
+
         self:_comp_cluster_center()
-        
+
         self.rotation = v_atan(self.cluster_center, target_pos)
-        
+
         local phalanx_length = RANK_CAPACITY -- avoiding `math.min`. see https://springrts.com/wiki/Lua_Performance
         if (#selected_land_attackers < phalanx_length) then phalanx_length = #selected_land_attackers end
         self.base_rotation = self.rotation - (DR * (phalanx_length - 1)) / 2
-        
+
         if is_debug then
             MarkerAddPoint(self.target_pos[1], self.target_pos[2], self.target_pos[3], "target", false)
             MarkerAddPoint(self.cluster_center[1], self.cluster_center[2], self.cluster_center[3], "cluster center", false)
             Echo("rotation: " .. self.rotation)
         end
     end,
-    
+
     _comp_cluster_center = function(self)
         self.cluster_center = { 0, 0, 0 }
         for i = 1, #selected_land_attackers do
@@ -161,6 +161,7 @@ local mission_control = {
 }
 
 --- Individual Swift controller. May use data from `mission_control`
+local LandAttackerControllerMT
 local LandAttackerController = {
     unit_id,
     selection_idx,
@@ -169,9 +170,10 @@ local LandAttackerController = {
     max_range,
     target_pos,
     is_activated,
-    
-    new = function(self, unit_id)
-        self = deepcopy(self)
+
+    new = function(index, unit_id)
+        local self = {}
+        setmetatable(self,LandAttackerControllerMT)
         self.unit_id = unit_id
         self.max_range = GetUnitMaxRange(self.unit_id)
         self.pos = { GetUnitPosition(self.unit_id) }
@@ -179,18 +181,18 @@ local LandAttackerController = {
         if is_debug then Echo("LandAttackController | added unit: " .. self.unit_id) end
         return self
     end,
-    
+
     unset = function(self)
         GiveOrderToUnit(self.unit_id, CMD_STOP, {}, {}, 1)
         if is_debug then Echo("LandAttackController | removed unit: " .. self.unit_id) end
         return nil
     end,
-    
+
     --- Executes a Land Attack order based on data in `mission_control`
     execute = function(self)
         self.pos = { GetUnitPosition(self.unit_id) }
         local landing_x, target_to_landing_dx = self:_compute_landing_x()
-        
+
         -- this is weird and looks suboptimal
         -- but checkpoint orders do not work without this queue emptying for some reason even if we issue the first
         -- order directly not with insertion in hope to empty the queue
@@ -200,7 +202,7 @@ local LandAttackerController = {
                 GiveOrderToUnit(self.unit_id, CMD_REMOVE, { cmds[i].id }, CMD_OPT_ALT)
             end
         end
-        
+
         local step_dx = v_mul(v_normalize(target_to_landing_dx), STEP_DX_0_NORM)
         local i = -1
         local x = landing_x
@@ -216,17 +218,17 @@ local LandAttackerController = {
             dst = dst - v_norm(step_dx)
             x = v_add(x, step_dx)
         end
-        
+
         GiveOrderToUnit(self.unit_id, CMD_IDLEMODE, 1, {}, CMD_OPT_ALT)
-        
+
         self.is_activated = true
-        
+
         if is_debug then Echo("LandAttackController"
                 .. " | landing: " .. table_to_string(landing_x)
                 .. " | attacker: " .. table_to_string(self.pos)
         ) end
     end,
-    
+
     --- Processes any other non Land Attack order to manage Fly/Land state
     process_cmd = function(self)
         local is_autoland = GetUnitStates(self.unit_id).autoland
@@ -238,28 +240,29 @@ local LandAttackerController = {
             self:_cancel()
         end
     end,
-    
+
     _cancel = function(self)
         if is_debug then Echo("LandAttackController | cancel | unit: " .. self.unit_id) end
         GiveOrderToUnit(self.unit_id, CMD_IDLEMODE, 0, {}, 0)
         self.is_activated = false
     end,
-    
+
     _compute_landing_x = function(self)
         local rotation = mission_control.base_rotation + DR * (self.selection_idx % RANK_CAPACITY)
-        
+
         local rank_idx = floor(self.selection_idx / RANK_CAPACITY)
         local range = BASE_RANGE + INTER_RANK_SPACING * rank_idx
-        
+
         local target_to_landing_dx = v_mul({ sin(rotation), 0, cos(rotation) }, range)
-        
+
         local landing_x = v_add(mission_control.target_pos, target_to_landing_dx)
         landing_x[2] = GetGroundHeight(landing_x[1], landing_x[3])
-        
+
         if is_debug then Echo("LandAttackController | _compute_landing_pos | " .. table_to_string(landing_x)) end
         return landing_x, target_to_landing_dx
     end,
 }
+LandAttackerControllerMT = {__index = LandAttackerController}
 
 function find_land_attackers(units)
     local res = {}

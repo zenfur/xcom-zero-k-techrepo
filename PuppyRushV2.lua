@@ -94,6 +94,7 @@ local cmdRushProduction = {
 }
 
 
+local RushControllerMT
 local RushController = {
 	unitID,
 	pos,
@@ -105,9 +106,10 @@ local RushController = {
 	forceTarget,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("RushController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, RushControllerMT)
 		self.unitID = unitID
 		self.toggle = RushProduction
 		self.range = GetUnitMaxRange(self.unitID)
@@ -314,6 +316,7 @@ local RushController = {
 		end
 	end
 }
+RushControllerMT = {__index=RushController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Puppy_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
@@ -353,22 +356,6 @@ function widget:GameFrame(n)
 	for _,Puppy in pairs(PuppyStack) do
 		Puppy:handle()
 	end
-end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weaponDefID, projectileID, attackerID, attackerDefID, attackerTeam)

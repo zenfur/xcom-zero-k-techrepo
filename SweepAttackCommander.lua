@@ -27,7 +27,7 @@ local GetUnitShieldState = Spring.GetUnitShieldState
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitStates = Spring.GetUnitStates
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
-local GetUnitVelocity  = Spring.GetUnitVelocity 
+local GetUnitVelocity  = Spring.GetUnitVelocity
 local GetPlayerInfo = Spring.GetPlayerInfo
 local GetMyPlayerID = Spring.GetMyPlayerID
 local myPlayerID = GetMyPlayerID()
@@ -59,12 +59,13 @@ local cmdSweep = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes Commander sweep the area before it with attacks to search for stealthed units.',
 	action  = 'unloadunits',
-	params  = { }, 
+	params  = { },
 	texture = 'unitpics/weaponmod_autoflechette.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
+local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
@@ -75,12 +76,13 @@ local SweeperController = {
 	enemyNear = false,
 	damage,
 
-	
-	
-	
-	new = function(self, unitID)
+
+
+
+	new = function(index, unitID)
 		--Echo("SweeperController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, SweeperControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -97,34 +99,34 @@ local SweeperController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
 		if  (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
 			if (self.enemyNear == false)then
-				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-				self.enemyNear = true						
+				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+				self.enemyNear = true
 			end
 			return true
 		end
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		self.toggle = true
 	end,
-	
+
 	toggleOff = function (self)
 		self.toggle = false
 		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 	end,
-	
-	
+
+
 	sweep = function(self)
 		local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
 		for rotationTest = 1, 3 do
@@ -135,7 +137,7 @@ local SweeperController = {
 				sin(heading+0.18*self.rotation)*(self.range-10),
 				nil,
 				cos(heading+0.18*self.rotation)*(self.range-10),
-				}	
+				}
 			local testTargetPosRelative = {
 				sin(heading+0.18*self.rotation)*(self.range-80),
 				nil,
@@ -162,20 +164,20 @@ local SweeperController = {
 		end
 		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, {}, {""}, 1)
 	end,
-	
+
 	isEnemyInRange2 = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ping*20+22, false)
 		if  (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
 			if (self.enemyNear == false)then
-				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-				self.enemyNear = true						
+				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+				self.enemyNear = true
 			end
 			return true
 		end
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
@@ -188,14 +190,14 @@ local SweeperController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
+
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
@@ -203,7 +205,7 @@ local SweeperController = {
 								closestShieldRadius = targetShieldRadius
 								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -212,7 +214,7 @@ local SweeperController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -243,9 +245,9 @@ local SweeperController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		end
 	end,
-	
-	
-	
+
+
+
 	handle=function(self)
 		self.pos = {GetUnitPosition(self.unitID)}
 		if(self.toggle) then
@@ -263,6 +265,7 @@ local SweeperController = {
 		end
 	end
 }
+SweeperControllerMT = {__index = SweeperController}
 
 function distance ( x1, y1, x2, y2 )
   local dx = (x1 - x2)
@@ -277,13 +280,13 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (SweeperStack[unitID]==nil) then
 		SweeperStack[unitID]=SweeperStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		local myInfo ={GetPlayerInfo(myPlayerID)}
 		ping = myInfo[6]
@@ -292,23 +295,6 @@ function widget:GameFrame(n)
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 --- COMMAND HANDLING
 

@@ -61,7 +61,7 @@ local selectedRavens = nil
 local RavenUnitDefID = UnitDefNames["bomberprec"].id
 
 
-
+local MexHuntControllerMT
 local MexHuntController = {
 	unitID,
 	pos,
@@ -71,9 +71,10 @@ local MexHuntController = {
 	initilised = false,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("MexHuntController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,MexHuntControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -144,21 +145,7 @@ function widget:GameFrame(n)
 		end
 	end
 end
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
+MexHuntControllerMT = {__index=MexHuntController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Raven_NAME) then

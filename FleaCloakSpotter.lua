@@ -55,6 +55,7 @@ local sqrt = math.sqrt
 local GetSpecState = Spring.GetSpectatingState
 
 
+local CloakToCloakSpotAIMT
 local CloakToCloakSpotAI = {
 	unitID,
 	pos,
@@ -65,9 +66,10 @@ local CloakToCloakSpotAI = {
 	enemyNear = false,
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("CloakToCloakSpotAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,CloakToCloakSpotAIMT)
 		self.unitID = unitID
 		self.range = UnitDefs[GetUnitDefID(self.unitID)].decloakDistance
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -141,6 +143,7 @@ local CloakToCloakSpotAI = {
 		end
 	end
 }
+CloakToCloakSpotAIMT={__index=CloakToCloakSpotAI}
 function widget:UnitDecloaked(unitID, unitDefID, teamID)
 	if(CloakerStack[unitID])then
 		CloakerStack[unitID]:handle();
@@ -169,24 +172,6 @@ end
 function widget:GameFrame(n)
 	currentFrame = n
 end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

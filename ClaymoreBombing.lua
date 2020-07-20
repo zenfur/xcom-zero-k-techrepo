@@ -83,15 +83,16 @@ local cmdSetReloadingZone = {
 }
 
 
-
+local reloadControllerMT
 local reloadController = {
 	unitID,
 	targetFrame,
 	pickupTarget,
 
 
-	new = function(self, unitID, target, reload)
-		self = deepcopy(self)
+	new = function(index, unitID, target, reload)
+		local self = {}
+		setmetatable(self,reloadControllerMT)
 		self.unitID = unitID
 		self.targetFrame = currentFrame+50
 		self.pickupTarget = target
@@ -114,7 +115,9 @@ local reloadController = {
 		end
 	end
 }
+reloadControllerMT = {__index=reloadController}
 
+local transportControllerMT
 local transportController = {
 	unitID,
 	pos,
@@ -124,9 +127,10 @@ local transportController = {
 	fight = false,
 	fightPos,
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("transportController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, transportControllerMT)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
 		return self
@@ -207,6 +211,7 @@ local transportController = {
 		end
 	end
 }
+transportControllerMT={__index=transportController}
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
 	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
@@ -378,21 +383,6 @@ function widget:GameFrame(n)
 	for _,ClaymoreBomber in pairs(TransporterStack) do
 		ClaymoreBomber:handle()
 	end
-end
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 -- The rest of the code is there to disable the widget for spectators

@@ -47,7 +47,7 @@ local CMD_Dgun = 105
 
 local GetSpecState = Spring.GetSpectatingState
 
-
+local ScorpionAndDanteSelfDefenceAIMT
 local ScorpionAndDanteSelfDefenceAI = {
 	unitID,
 	pos,
@@ -57,10 +57,11 @@ local ScorpionAndDanteSelfDefenceAI = {
 	reloadTime,
 	maxHealth,
 
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("ScorpionAndDanteSelfDefenceAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, ScorpionAndDanteSelfDefenceAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -126,8 +127,9 @@ local ScorpionAndDanteSelfDefenceAI = {
 		return false
 	end
 }
+ScorpionAndDanteSelfDefenceAIMT = {__index=ScorpionAndDanteSelfDefenceAI}
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 	for _,Strider in pairs(StriderStack) do
 		Strider:isThreatInRange()
@@ -152,23 +154,6 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weap
 		StriderStack[unitID].cooldownFrame=currentFrame+40
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 
 -- The rest of the code is there to disable the widget for spectators

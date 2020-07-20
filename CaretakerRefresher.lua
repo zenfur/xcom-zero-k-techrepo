@@ -124,6 +124,7 @@ local JOB_IDLE = 999
 
 local selectedCaretakers
 
+local CaretakerControllerMT
 local CaretakerController = {
 	unitID,
 	pos,
@@ -136,11 +137,12 @@ local CaretakerController = {
 	jobTargetID,
 	dontManageUntil = 0,
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("CaretakerController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,CaretakerControllerMT)
 		self.unitID = unitID
-		DefID = GetUnitDefID(unitID)
+		local DefID = GetUnitDefID(unitID)
 		self.range = UnitDefs[DefID].buildDistance - 25
 		self.pos = {GetUnitPosition(self.unitID)}
 		self.jobs = {}
@@ -285,6 +287,7 @@ local CaretakerController = {
 		end
 	end
 }
+CaretakerControllerMT = {__index=CaretakerController}
 
 function distance ( x1, y1, x2, y2 )
 	local dx = (x1 - x2)
@@ -404,21 +407,6 @@ function widget:Initialize()
 			end
 		end
 	end
-end
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 -- The rest of the code is there to disable the widget for spectators

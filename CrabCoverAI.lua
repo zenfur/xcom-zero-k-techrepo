@@ -32,6 +32,7 @@ local CMD_OPT_INTERNAL = CMD.OPT_INTERNAL
 local CMD_RAW_MOVE  = 31109
 local CMD_MOVE_ID = 10
 
+local CrabAIMT
 local CrabAI = {
 	unitID,
 	pos,
@@ -40,10 +41,11 @@ local CrabAI = {
 	moveTarget,
 	enemyClose = false,
 
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("CrabAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,CrabAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -56,18 +58,18 @@ local CrabAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setMoveTarget = function(self, params)
 		self.moveTarget = params
 		Echo("move params updated")
 		self.enemyClose = false
 	end,
-	
+
 	cancelMoveTarget = function(self)
 		self.moveTarget = {GetUnitPosition(self.unitID)}
 		Echo("movement cancelled")
 	end,
-	
+
 	isEnemyInRange = function (self)
 		self.pos = {GetUnitPosition(self.unitID)}
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
@@ -94,12 +96,13 @@ local CrabAI = {
 		self.enemyClose = false
 		return false
 	end,
-	
-	
+
+
 	handle = function(self)
 		self:isEnemyInRange()
 	end
 }
+CrabAIMT = {__index=CrabAI}
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		if (UnitDefs[unitDefID].name==Crab_NAME)
@@ -114,28 +117,12 @@ function widget:UnitDestroyed(unitID)
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,crab in pairs(CrabStack) do
 			crab:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)

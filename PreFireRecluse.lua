@@ -50,12 +50,12 @@ local cmdToggle = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Toggles Recluse PreFire behavior',
 	action  = 'oneclickwep',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
-
+local RecluseControllerMT
 local RecluseController = {
 	unitID,
 	pos,
@@ -64,11 +64,12 @@ local RecluseController = {
 	toggle = false,
 	enemyNear = false,
 	damage,
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("RecluseController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,RecluseControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -84,34 +85,34 @@ local RecluseController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		self.toggle = true
 		Echo("ReclusePreFire toggled On")
 	end,
-	
+
 	toggleOff = function (self)
 		self.toggle = false
 		Echo("ReclusePreFire toggled Off")
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+22, false)
 		if  (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
 			if (self.enemyNear == false)then
-				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-				self.enemyNear = true						
+				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+				self.enemyNear = true
 			end
 			return true
 		end
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	isEnemyInEffectiveRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
 		if(enemyUnitID)then
@@ -149,11 +150,12 @@ local RecluseController = {
 		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		return false
 	end,
-	
-	
+
+
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
+		local closestShieldID = nil
+		local closestShieldDistance = nil
+		local rotation, closestShieldRadius
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
@@ -163,7 +165,7 @@ local RecluseController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
@@ -187,7 +189,7 @@ local RecluseController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -218,8 +220,8 @@ local RecluseController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		end
 	end,
-	
-	
+
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate~=0)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -235,6 +237,7 @@ local RecluseController = {
 		end
 	end
 }
+RecluseControllerMT = {__index=RecluseController}
 
 function distance ( x1, y1, x2, y2 )
   local dx = (x1 - x2)
@@ -249,34 +252,18 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (RecluseStack[unitID]==nil) then
 		RecluseStack[unitID]=RecluseStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,Recluse in pairs(RecluseStack) do
 			Recluse:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
 end
 
 --- COMMAND HANDLING

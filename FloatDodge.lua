@@ -35,7 +35,7 @@ local GetUnitDefID = Spring.GetUnitDefID
 local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local IsUnitSelected = Spring.IsUnitSelected
-local GetUnitVelocity  = Spring.GetUnitVelocity 
+local GetUnitVelocity  = Spring.GetUnitVelocity
 local GetUnitHeading = Spring.GetUnitHeading
 local GetPlayerInfo = Spring.GetPlayerInfo
 local GetMyPlayerID = Spring.GetMyPlayerID
@@ -65,15 +65,17 @@ local currentFrame = 0
 
 
 
+local FloatControllerMT
 local FloatController = {
 	unitID,
 	allyTeamID = GetMyAllyTeamID(),
-	
-	
-	
-	new = function(self, unitID)
+
+
+
+	new = function(index, unitID)
 		--Echo("FloatController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, FloatControllerMT)
 		self.unitID = unitID
 		return self
 	end,
@@ -101,6 +103,7 @@ local FloatController = {
 		--end
 	end
 }
+FloatControllerMT = {__index = FloatController}
 
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
@@ -117,7 +120,7 @@ function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
 	end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (BuyoStack[unitID]==nil) then
 		BuyoStack[unitID]=BuyoStack[unitID]:unset();
 	end
@@ -129,23 +132,6 @@ function widget:GameFrame(n)
 		Buyo:handle()
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

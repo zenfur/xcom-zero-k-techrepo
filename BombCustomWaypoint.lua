@@ -80,7 +80,7 @@ local cmdSetBombWayPoint = {
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
-
+local FactoryWaypointControllerMT
 local FactoryWaypointController = {
 	unitID,
 	pos,
@@ -88,11 +88,10 @@ local FactoryWaypointController = {
 	targetParams = nil,
 
 
-
-
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("FactoryWaypointController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,FactoryWaypointControllerMT)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
 		return self
@@ -110,6 +109,7 @@ local FactoryWaypointController = {
 		self.targetParams = params
 	end
 }
+FactoryWaypointControllerMT = {__index=FactoryWaypointController}
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if not(FactoryStack[builderID]==nil) and FactoryStack[builderID].targetParams~=nil and (unitTeam==GetMyTeamID())then
@@ -146,23 +146,6 @@ function widget:UnitDestroyed(unitID)
 		FactoryStack[unitID]=FactoryStack[unitID]:unset();
 	end
 end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
 
 --- COMMAND HANDLING
 

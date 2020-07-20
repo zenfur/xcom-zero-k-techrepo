@@ -44,17 +44,19 @@ local CMD_ATTACK = CMD.ATTACK
 
 
 
+local PhantomControllerMT
 local PhantomController = {
 	unitID,
 	pos,
 	allyTeamID = GetMyAllyTeamID(),
 	range,
 	forceTarget,
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("PhantomController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, PhantomControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -66,11 +68,11 @@ local PhantomController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 
 	isEnemyTooClose = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 300)
@@ -82,9 +84,9 @@ local PhantomController = {
 					if(enemyPosition[2]>-30)then
 						if  (GetUnitIsDead(units[i]) == false) then
 							local hasArmor = GetUnitArmored(units[i])
-							if not((UnitDefs[DefID].name == Razor_NAME 
-							or UnitDefs[DefID].name == Gauss_NAME 
-							or UnitDefs[DefID].name == Faraday_NAME 
+							if not((UnitDefs[DefID].name == Razor_NAME
+							or UnitDefs[DefID].name == Gauss_NAME
+							or UnitDefs[DefID].name == Faraday_NAME
 							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor) then
 								GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
 								return true
@@ -153,7 +155,7 @@ local PhantomController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, target, 0)
 		end
 	end,
-	
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate==1)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -163,6 +165,7 @@ local PhantomController = {
 		end
 	end
 }
+PhantomControllerMT = {__index = PhantomController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
 	if (UnitDefs[unitDefID].name == Phantom_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
@@ -179,37 +182,19 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (PhantomStack[unitID]==nil) then
 		PhantomStack[unitID]=PhantomStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
-		for _,Phantom in pairs(PhantomStack) do 
+		for _,Phantom in pairs(PhantomStack) do
 			Phantom:handle()
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

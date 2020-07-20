@@ -52,6 +52,7 @@ local CMD_REMOVE = CMD.REMOVE
 
 
 
+local FelonControllerMT
 local FelonController = {
 	unitID,
 	pos,
@@ -60,11 +61,12 @@ local FelonController = {
 	damage,
 	forceTarget,
 
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("FelonController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, FelonControllerMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -80,11 +82,11 @@ local FelonController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	setForceTarget = function(self, param)
 		self.forceTarget = param[1]
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		local target = nil
@@ -101,7 +103,7 @@ local FelonController = {
 						local hasArmor = GetUnitArmored(units[i])
 						if  (GetUnitIsDead(units[i]) == false)then
 							local hasArmor = GetUnitArmored(units[i])
-							if not(UnitDefs[DefID].name == Solar_NAME 
+							if not(UnitDefs[DefID].name == Solar_NAME
 							or UnitDefs[DefID].name == Dirtbag_NAME
 							or UnitDefs[DefID].name == Minotaur_NAME
 							or UnitDefs[DefID].name == Cyclops_NAME
@@ -127,7 +129,7 @@ local FelonController = {
 			return true
 		end
 	end,
-	
+
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
@@ -140,19 +142,19 @@ local FelonController = {
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
-							
+
 							local targetShieldRadius
 							if (UnitDefs[DefID].weapons[2] == nil)then
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
 							else
 								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
 							end
-							
+
 							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 							end
-							
+
 							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -161,7 +163,7 @@ local FelonController = {
 							end
 						end
 					end
-				end	
+				end
 			end
 		end
 		if(closestShieldID ~= nil)then
@@ -192,7 +194,7 @@ local FelonController = {
 			GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 		end
 	end,
-	
+
 	handle=function(self)
 		if(GetUnitStates(self.unitID).firestate==1)then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -203,6 +205,7 @@ local FelonController = {
 		end
 	end
 }
+FelonControllerMT = {__index = FelonController}
 
 function distance ( x1, y1, x2, y2 )
   local dx = (x1 - x2)
@@ -225,37 +228,19 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (FelonStack[unitID]==nil) then
 		FelonStack[unitID]=FelonStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 	
+function widget:GameFrame(n)
 	--if (n%UPDATE_FRAME==0) then
-		for _,Felon in pairs(FelonStack) do 
+		for _,Felon in pairs(FelonStack) do
 			Felon:handle()
 		end
 	--end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()

@@ -49,12 +49,13 @@ local cmdSweep = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes Jugglenaut sweep the area before it with attacks to search for stealthed units.',
 	action  = 'oneclickwep',
-	params  = { }, 
+	params  = { },
 	texture = 'unitpics/weaponmod_autoflechette.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
+local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
@@ -64,12 +65,13 @@ local SweeperController = {
 	toggle = false,
 	enemyNear = false,
 
-	
-	
-	
-	new = function(self, unitID)
+
+
+
+	new = function(index, unitID)
 		--Echo("SweeperController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, SweeperControllerMT)
 		self.unitID = unitID
 		self.range = (GetUnitMaxRange(self.unitID)-50)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -82,7 +84,7 @@ local SweeperController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		for i=1, #units do
@@ -92,8 +94,8 @@ local SweeperController = {
 				if not(DefID == nil)then
 					if  (GetUnitIsDead(unitID) == false and UnitDefs[DefID].isBuilding == false) then
 						if (self.enemyNear == false)then
-							GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)	
-							self.enemyNear = true						
+							GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
+							self.enemyNear = true
 						end
 						return true
 					end
@@ -103,23 +105,23 @@ local SweeperController = {
 		self.enemyNear = false
 		return false
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		self.toggle = true
 		Echo("JuggleSweep toggled on.")
 	end,
-	
+
 	toggleOff = function (self)
 		self.toggle = false
 		Echo("JuggleSweep toggled off.")
 		GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 	end,
-	
-	
+
+
 	sweep = function(self)
 		local heading = GetUnitHeading(self.unitID)*HEADING_TO_RAD
 		if (self.rotation > 5) then
@@ -129,20 +131,20 @@ local SweeperController = {
 			sin(heading+0.15*self.rotation)*(self.range),
 			nil,
 			cos(heading+0.15*self.rotation)*(self.range),
-			}	
+			}
 			self.rotation = self.rotation+1
 		local targetPosAbsolute = {
 			targetPosRelative[1]+self.pos[1],
 			nil,
 			targetPosRelative[3]+self.pos[3],
 			}
-			
+
 		targetPosAbsolute[2]= GetGroundHeight(targetPosAbsolute[1],targetPosAbsolute[3])
 		GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, {targetPosAbsolute[1], targetPosAbsolute[2], targetPosAbsolute[3]}, 0)
 	end,
-	
-	
-	
+
+
+
 	handle=function(self)
 		self.pos = {GetUnitPosition(self.unitID)}
 		if(self.toggle) then
@@ -153,6 +155,7 @@ local SweeperController = {
 		end
 	end
 }
+SweeperControllerMT = {__index = SweeperController}
 
 
 
@@ -163,36 +166,19 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (SweeperStack[unitID]==nil) then
 		SweeperStack[unitID]=SweeperStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,sweeper in pairs(SweeperStack) do
 			sweeper:handle()
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 --- COMMAND HANDLING
 

@@ -32,19 +32,20 @@ local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
 local CMD_MOVE = CMD.MOVE
 
-
+local BurrowAttackControllerMT
 local BurrowAttackController = {
 	unitID,
 	pos,
 	allyTeamID = GetMyAllyTeamID(),
 	range,
 	isSelected = false,
-	
-	
-	
-	new = function(self, unitID)
+
+
+
+	new = function(index, unitID)
 		--Echo("BurrowAttackController added:" .. unitID)
-		self = deepcopy(self)
+		self = {}
+		setmetatable(self,BurrowAttackControllerMT)
 		self.unitID = unitID
 		self.range = UnitDefs[GetUnitDefID(self.unitID)].decloakDistance
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -56,9 +57,9 @@ local BurrowAttackController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
 
-	
+
+
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
 		for i=1, #units do
@@ -70,14 +71,15 @@ local BurrowAttackController = {
 			end
 		end
 	end,
-	
-	
+
+
 	handle=function(self)
 		self.isSelected = IsUnitSelected(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
 		self:isEnemyInRange()
 	end
 }
+BurrowAttackControllerMT = {__index=BurrowAttackController}
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		if (UnitDefs[unitDefID].name==Imp_NAME or UnitDefs[unitDefID].name==Snitch_NAME)
@@ -86,36 +88,19 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (BurrowBombStack[unitID]==nil) then
 		BurrowBombStack[unitID]=BurrowBombStack[unitID]:unset();
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,bomb in pairs(BurrowBombStack) do
 			bomb:handle()
 		end
 	end
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
 
 
 -- The rest of the code is there to disable the widget for spectators
@@ -143,4 +128,3 @@ end
 function widget:PlayerChanged (playerID)
 	DisableForSpec()
 end
-
