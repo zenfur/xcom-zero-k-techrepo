@@ -91,7 +91,7 @@ local JumpToAvoidSuiciderController = {
 	--Jump always towards factory the unit was made/spawnpoint
 	isSuiciderTooClose = function (self)
 		self.pos = {GetUnitPosition(self.unitID)}
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 210)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 210, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				if  (GetUnitIsDead(units[i]) == false) then

@@ -90,7 +90,7 @@ local ArtemisController = {
 	end,
 	
 	isEnemyInRange = function (self)
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range, Spring.ENEMY_UNITS)
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then

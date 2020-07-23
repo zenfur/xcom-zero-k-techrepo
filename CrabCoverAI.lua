@@ -72,7 +72,7 @@ local CrabAI = {
 
 	isEnemyInRange = function (self)
 		self.pos = {GetUnitPosition(self.unitID)}
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				local DefID = GetUnitDefID(units[i])

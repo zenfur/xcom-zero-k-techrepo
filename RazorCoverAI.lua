@@ -75,7 +75,7 @@ local RazorAI = {
 
 	isEnemyInRange = function (self)
 		if(GetUnitArmored(self.unitID))then
-			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)
+			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range, Spring.ENEMY_UNITS)
 			for i=1, #units do
 				if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					if  (GetUnitIsDead(units[i]) == false) then

@@ -79,7 +79,7 @@ local UltimatumSelfDefenceAI = {
 	isThreatInRange = function (self)
 		if(GetUnitIsCloaked(self.unitID)==false)then
 			self.pos = {GetUnitPosition(self.unitID)}
-			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 			for i=1, #units do
 				if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					if  (GetUnitIsDead(units[i]) == false) then

@@ -169,7 +169,7 @@ local transportController = {
 	handle = function(self)
 		if(self.fight)then
 			self.pos = {GetUnitPosition(self.unitID)}
-			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 50)
+			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 50, Spring.ENEMY_UNITS)
 			for i=1, #units do
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					local DefID = GetUnitDefID(units[i])

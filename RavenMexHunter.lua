@@ -96,21 +96,19 @@ local MexHuntController = {
 		local ammoState = GetUnitRulesParam(self.unitID, "noammo")
 		if (self.hunting and (ammoState==0 or ammoState==nil))then
 			self.pos = {GetUnitPosition(self.unitID)}
-			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600)
+			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 600, Spring.ENEMY_UNITS)
 			for i=1, #units do
-				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					DefID = GetUnitDefID(units[i])
-					if not(DefID == nil)then
-						if  (GetUnitIsDead(units[i]) == false)then
-							if(UnitDefs[DefID].name == Metal_NAME)then
-								if (MexTargetStack[units[i]]==nil)then
-									GiveOrderToUnit(self.unitID, CMD_ATTACK, {units[i]}, 0)
-									--Echo("set target")
-									MexTargetStack[units[i]]=units[i]
-									self.hunting = false
-									self.target = units[i]
-									return
-								end
+				DefID = GetUnitDefID(units[i])
+				if not(DefID == nil)then
+					if  (GetUnitIsDead(units[i]) == false)then
+						if(UnitDefs[DefID].name == Metal_NAME)then
+							if (MexTargetStack[units[i]]==nil)then
+								GiveOrderToUnit(self.unitID, CMD_ATTACK, {units[i]}, 0)
+								--Echo("set target")
+								MexTargetStack[units[i]]=units[i]
+								self.hunting = false
+								self.target = units[i]
+								return
 							end
 						end
 					end

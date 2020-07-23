@@ -145,7 +145,7 @@ local SweeperController = {
 
 
 	isEnemyInRange2 = function (self)
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+22)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+22, Spring.ENEMY_UNITS)
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
@@ -182,7 +182,7 @@ local SweeperController = {
 	isShieldInEffectiveRange = function (self)
 		closestShieldID = nil
 		closestShieldDistance = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 				DefID = GetUnitDefID(units[i])

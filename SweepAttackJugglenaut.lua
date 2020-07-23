@@ -86,7 +86,7 @@ local SweeperController = {
 	end,
 
 	isEnemyInRange = function (self)
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+ENEMY_DETECT_BUFFER, Spring.ENEMY_UNITS)
 		for i=1, #units do
 		local unitID = units[i]
 			if not (GetUnitAllyTeam(unitID) == self.allyTeamID) then

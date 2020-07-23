@@ -82,7 +82,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 		if(GetUnitHealth(self.unitID)<self.maxHealth*0.1)then --is Health Critical?
 			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then --Health is critical
 				self.pos = {GetUnitPosition(self.unitID)}
-				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 				for i=1, #units do
 					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 						if  (GetUnitIsDead(units[i]) == false) then
@@ -107,7 +107,7 @@ local ScorpionAndDanteSelfDefenceAI = {
 		else --Health is not critical
 		if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then
 				self.pos = {GetUnitPosition(self.unitID)}
-				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 				for i=1, #units do
 					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 						if  (GetUnitIsDead(units[i]) == false) then

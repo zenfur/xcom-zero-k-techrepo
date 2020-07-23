@@ -158,7 +158,7 @@ local RushController = {
 
 
 	isEnemyInRangeV2 = function (self)
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+100*ping)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+100*ping, Spring.ENEMY_UNITS)
 
 		for i=1, #units do
 			if(self.target==units[i])then
@@ -197,7 +197,7 @@ local RushController = {
 		if(self.attackActive<currentFrame)then
 			local jumps = self:getJumpCount()
 			local target = nil
-			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], (self.range-10)*jumps)
+			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], (self.range-10)*jumps, Spring.ENEMY_UNITS)
 			for i=1, #units do
 				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					local DefID = GetUnitDefID(units[i])
