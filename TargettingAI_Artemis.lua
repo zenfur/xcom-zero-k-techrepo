@@ -98,7 +98,7 @@ local ArtemisController = {
 					GiveOrderToUnit(self.unitID,CMD_ATTACK, units[i], 0)
 					return true
 				end
-				DefID = GetUnitDefID(units[i])
+				local DefID = GetUnitDefID(units[i])
 				if not(DefID == nil)then
 					if  (GetUnitIsDead(units[i]) == false and  UnitDefs[DefID].isAirUnit == true and UnitDefs[DefID].metalCost >= self.metalTarget[self.metalTargetValue]) then
 						if (target == nil) then

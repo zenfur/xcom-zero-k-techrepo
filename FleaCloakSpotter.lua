@@ -100,7 +100,7 @@ local CloakToCloakSpotAI = {
 	end,
 
 	handle = function(self)
-		local unitStates = GetUnitStates(self.unitID)
+		--local unitStates = GetUnitStates(self.unitID)
 		if(GetCommandQueue(self.unitID,0)==0)then
 			self.reloadState = GetUnitWeaponState(self.unitID, 1, "reloadState")
 			if(currentFrame >= self.reloadState-self.reloadTime+120 and currentFrame >= self.cooldownFrame)then

@@ -83,7 +83,7 @@ local UltimatumSelfDefenceAI = {
 			for i=1, #units do
 				if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
 					if  (GetUnitIsDead(units[i]) == false) then
-						DefID = GetUnitDefID(units[i])
+						local DefID = GetUnitDefID(units[i])
 						if not(DefID == nil)then
 							if(UnitDefs[DefID].metalCost >= 1500 and UnitDefs[DefID].isAirUnit==false)then
 								GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
@@ -161,7 +161,7 @@ function widget:Initialize()
 	team_id = Spring.GetMyTeamID()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
+		local  DefID = GetUnitDefID(units[i])
 		if (UnitDefs[DefID].name==Ultimatum_NAME) then
 			if  (StriderStack[units[i]]==nil) then
 				StriderStack[units[i]]=UltimatumSelfDefenceAI:new(units[i])

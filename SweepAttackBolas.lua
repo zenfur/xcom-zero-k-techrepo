@@ -149,10 +149,10 @@ local SweeperController = {
 		local target = nil
 		for i=1, #units do
 			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				enemyPosition = {GetUnitPosition(units[i])}
+				local enemyPosition = {GetUnitPosition(units[i])}
 				if(enemyPosition[2]>-30)then
 
-					DefID = GetUnitDefID(units[i])
+					local DefID = GetUnitDefID(units[i])
 					if not(DefID == nil)then
 
 						if  (GetUnitIsDead(units[i]) == false)then
