@@ -217,7 +217,7 @@ local ShieldTargettingController = {
 
 local BuildingShieldTargettingController = {
 	new = function(self, unitID)
-		self = ShieldTargettingController:new(self, unitID)
+		self = self:new(unitID)
 		self.extra_range = 14
 		self.stop = function(self)
 			GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
