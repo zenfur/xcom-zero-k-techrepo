@@ -370,7 +370,7 @@ end
 
 local function DisableForSpec()
     if GetSpecState() then
-        widgetHandler:RemoveWidget()
+        widgetHandler:RemoveWidget(widget)
     end
 end
 

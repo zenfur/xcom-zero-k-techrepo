@@ -454,7 +454,7 @@ end
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
