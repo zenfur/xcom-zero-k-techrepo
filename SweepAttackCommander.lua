@@ -179,26 +179,25 @@ local SweeperController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		local closestShieldID = nil
-		local closestShieldDistance = nil
+		local closestShieldID,closestShieldDistance, closestShieldRadius, rotation
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				local DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
+				local unitDefID = GetUnitDefID(units[i])
+				if not(unitDefID == nil)then
+					if (GetUnitIsDead(units[i]) == false and UnitDefs[unitDefID].hasShield == true) then
 						local shieldHealth = {GetUnitShieldState(units[i])}
 						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
 							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
 
 							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
+							if (UnitDefs[unitDefID].weapons[2] == nil)then
+								targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].shieldRadius
 							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
+								targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].shieldRadius
 							end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
 							if not(closestShieldDistance)then
 								closestShieldDistance = enemyShieldDistance
 								closestShieldID = units[i]
@@ -225,7 +224,7 @@ local SweeperController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
@@ -330,8 +329,8 @@ function filterSweepers(units)
 	local n = 0
 	for i = 1, #units do
 		local unitID = units[i]
-		DefID = GetUnitDefID(unitID)
-		if(string.match(UnitDefs[DefID].name, "dyn"))then
+		unitDefID = GetUnitDefID(unitID)
+		if(string.match(UnitDefs[unitDefID].name, "dyn"))then
 			n = n + 1
 			filtered[n] = unitID
 		end
@@ -363,8 +362,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (string.match(UnitDefs[DefID].name, "dyn"))  then
+		unitDefID = GetUnitDefID(units[i])
+		if (string.match(UnitDefs[unitDefID].name, "dyn"))  then
 			if  (SweeperStack[units[i]]==nil) then
 				SweeperStack[units[i]]=SweeperController:new(units[i])
 			end

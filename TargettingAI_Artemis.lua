@@ -16,20 +16,15 @@ local UPDATE_FRAME=4
 local ArtemisStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitStates = Spring.GetUnitStates
 local Echo = Spring.Echo
-local Artemis_NAME = "turretaaheavy"
+local Artemis_ID = UnitDefNames.turretaaheavy.id
 local GetSpecState = Spring.GetSpectatingState
 local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
@@ -52,7 +47,6 @@ local ArtemisControllerMT
 local ArtemisController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	forceTarget,
 	metalTarget,
@@ -93,20 +87,18 @@ local ArtemisController = {
 		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range, Spring.ENEMY_UNITS)
 		local target = nil
 		for i=1, #units do
-			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-					GiveOrderToUnit(self.unitID,CMD_ATTACK, units[i], 0)
-					return true
-				end
-				local DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if  (GetUnitIsDead(units[i]) == false and  UnitDefs[DefID].isAirUnit == true and UnitDefs[DefID].metalCost >= self.metalTarget[self.metalTargetValue]) then
-						if (target == nil) then
-							target = units[i]
-						end
-						if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
-							target = units[i]
-						end	
+			if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
+				GiveOrderToUnit(self.unitID,CMD_ATTACK, units[i], 0)
+				return true
+			end
+			local unitDefID = GetUnitDefID(units[i])
+			if not(unitDefID == nil)then
+				if  (GetUnitIsDead(units[i]) == false and  UnitDefs[unitDefID].isAirUnit == true and UnitDefs[unitDefID].metalCost >= self.metalTarget[self.metalTargetValue]) then
+					if (target == nil) then
+						target = units[i]
+					end
+					if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[unitDefID].metalCost)then
+						target = units[i]
 					end
 				end
 			end
@@ -127,7 +119,7 @@ local ArtemisController = {
 ArtemisControllerMT = {__index = ArtemisController}
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
-	if (UnitDefs[unitDefID].name == Artemis_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
+	if (unitDefID == Artemis_ID and cmdID == CMD_ATTACK  and #cmdParams == 1) then
 		if (ArtemisStack[unitID])then
 			ArtemisStack[unitID]:setForceTarget(cmdParams)
 		end
@@ -135,7 +127,7 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Artemis_NAME)
+		if (unitDefID == Artemis_ID)
 		and (unitTeam==GetMyTeamID()) then
 			ArtemisStack[unitID] = ArtemisController:new(unitID);
 		end
@@ -213,8 +205,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Artemis_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Artemis_ID)  then
 			if  (ArtemisStack[units[i]]==nil) then
 				ArtemisStack[units[i]]=ArtemisController:new(units[i])
 			end

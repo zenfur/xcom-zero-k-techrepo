@@ -73,8 +73,7 @@ local GetFeaturePosition = Spring.GetFeaturePosition
 --]]
 
 local Echo = Spring.Echo
-local target_name = "staticcon"
-local caretakerUnitDefID = UnitDefNames.staticcon.id
+local Caretaker_ID = UnitDefNames.staticcon.id
 local GetSpecState = Spring.GetSpectatingState
 
 local CMD_STOP = CMD.STOP
@@ -141,8 +140,8 @@ local CaretakerController = {
 		local self = {}
 		setmetatable(self,CaretakerControllerMT)
 		self.unitID = unitID
-		local DefID = GetUnitDefID(unitID)
-		self.range = UnitDefs[DefID].buildDistance - 25
+		local unitDefID = GetUnitDefID(unitID)
+		self.range = UnitDefs[unitDefID].buildDistance - 25
 		self.pos = {GetUnitPosition(self.unitID)}
 		self.jobs = {}
 		self.currentJob = JOB_IDLE
@@ -329,7 +328,7 @@ function filterCaretakers(units)
 	local n = 0
 	for i = 1, #units do
 		local unitID = units[i]
-		if (caretakerUnitDefID == GetUnitDefID(unitID)) then
+		if (Caretaker_ID == GetUnitDefID(unitID)) then
 			n = n + 1
 			filtered[n] = unitID
 		end
@@ -361,23 +360,23 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==target_name)
+	if (unitDefID==Caretaker_ID)
 			and (unitTeam==GetMyTeamID()) then
-		UnitRegister[unitID] = CaretakerController:new(unitID);
+		UnitRegister[unitID] = CaretakerController:new(unitID)
 	end
 end
 
 -- removing transferred units
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if not (UnitRegister[unitID]==nil) and unitID == GetMyTeamID() then
-		UnitRegister[unitID]=UnitRegister[unitID]:unset();
+	if UnitRegister[unitID] then
+		UnitRegister[unitID]=UnitRegister[unitID]:unset()
 	end
 end
 
 -- accepting transferred units - add them to register
 function widget:UnitGiven(unitID, unitDefID, newTeam, unitTeam)
-	if (UnitDefs[unitDefID].name==target_name)
-			and (unitTeam==GetMyTeamID()) then
+	if unitDefID == Caretaker_ID
+			and (newTeam==GetMyTeamID()) then
 		UnitRegister[unitID] = CaretakerController:new(unitID);
 	end
 end
@@ -404,8 +403,8 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==target_name)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Caretaker_ID) then
 			if  (UnitRegister[units[i]]==nil) then
 				UnitRegister[units[i]]=CaretakerController:new(units[i])
 			end

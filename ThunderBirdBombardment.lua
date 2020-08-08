@@ -12,48 +12,26 @@ function widget:GetInfo()
 end
 
 local UPDATE_FRAME = 50
-local pi = math.pi
-local sin = math.sin
-local cos = math.cos
-local atan = math.atan
-local ceil = math.ceil
 local TBStack = {}
 local LandingPadCount = 0
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetTeamUnits = Spring.GetTeamUnits
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local GetUnitHealth = Spring.GetUnitHealth
-local GetUnitStates = Spring.GetUnitStates
-local GetUnitMoveTypeData = Spring.GetUnitMoveTypeData
 local GetUnitRulesParam = Spring.GetUnitRulesParam
-local ENEMY_DETECT_BUFFER  = 74
 local Echo = Spring.Echo
-local initDone = false
-local Thunderbird_NAME = "bomberdisarm"
-local Airfac_NAME = "factoryplane"
-local Reef_NAME = "shipcarrier"
-local Airpad_NAME = "staticrearm"
+local Thunderbird_ID = UnitDefNames.bomberdisarm.id
+local Airfac_ID = UnitDefNames.factoryplane.id
+local Reef_ID = UnitDefNames.shipcarrier.id
+local Airpad_ID = UnitDefNames.staticrearm.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
-local CMD_UNIT_SET_TARGET = 34923
-local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
 local CMD_OPT_SHIFT = CMD.OPT_SHIFT
 local CMD_INSERT = CMD.INSERT
-local CMD_ATTACK = CMD.ATTACK
-local CMD_MOVE = CMD.MOVE
 local CMD_RAW_MOVE  = 31109
-local CMD_REMOVE = CMD.REMOVE
-local CMD_OPT_INTERNAL = CMD.OPT_INTERNAL
-local CMD_AP_FLY_STATE = 34569
 local CMD_DROP_BOMB = 35000
 
 local CMD_TOGGLE_FLIGHT = 145
@@ -77,7 +55,6 @@ local landAttackControllerMT
 local landAttackController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	targetParams,
 	landAttackOn = false,
@@ -118,7 +95,7 @@ landAttackControllerMT = {__index = landAttackController}
 function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for unitID,TB in pairs(TBStack) do
-			ammoState = GetUnitRulesParam(unitID, "noammo")
+			local ammoState = GetUnitRulesParam(unitID, "noammo")
 			if (TB.landAttackOn==true and ammoState==1)then
 				TB.landAttackOn=false
 				GiveOrderToUnit(unitID, CMD_TOGGLE_FLIGHT, 0, {""}, 0)
@@ -132,11 +109,11 @@ function widget:GameFrame(n)
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Thunderbird_NAME)
+	if (unitDefID == Thunderbird_ID)
 			and (unitTeam==GetMyTeamID()) then
 		TBStack[unitID] = landAttackController:new(unitID);
 	end
-	if ((UnitDefs[unitDefID].name==Airfac_NAME or UnitDefs[unitDefID].name==Airpad_NAME or UnitDefs[unitDefID].name==Reef_NAME)
+	if ((unitDefID == Airfac_ID or unitDefID == Airpad_ID or unitDefID == Reef_ID)
 			and (unitTeam==GetMyTeamID())) then
 		LandingPadCount = LandingPadCount+1
 	end
@@ -146,29 +123,12 @@ function widget:UnitDestroyed(unitID)
 	if not (TBStack[unitID]==nil) then
 		TBStack[unitID]=TBStack[unitID]:unset();
 	end
-	DefID = GetUnitDefID(unitID)
-	if ((UnitDefs[DefID].name==Airfac_NAME or UnitDefs[DefID].name==Airpad_NAME or UnitDefs[DefID].name==Reef_NAME)
+	local unitDefID = GetUnitDefID(unitID)
+	if ((unitDefID == Airfac_ID or unitDefID == Airpad_ID or unitDefID == Reef_ID)
 			and (GetUnitAllyTeam(unitID)==GetMyTeamID())) then
 		LandingPadCount = LandingPadCount-1
 	end
 end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
 
 --- COMMAND HANDLING
 
@@ -177,8 +137,8 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_LAND_ATTACK and #params == 3)then
 			for i=1, #selectedTHunderbirds do
 				if(TBStack[selectedTHunderbirds[i]])then
-					ammoState = GetUnitRulesParam(selectedTHunderbirds[i], "noammo")
-					if (ammoState==0 or ammoState==nil)then
+					local ammoState = GetUnitRulesParam(selectedTHunderbirds[i], "noammo")
+					if (ammoState==nil or ammoState == 0)then
 						TBStack[selectedTHunderbirds[i]]:setTargetParams(params)
 						TBStack[selectedTHunderbirds[i]]:landAttack()
 					end
@@ -190,10 +150,10 @@ function widget:CommandNotify(cmdID, params, options)
 end
 
 function widget:SelectionChanged(selectedUnits)
-	selectedTHunderbirds = filterPuppies(selectedUnits)
+	selectedTHunderbirds = filterSelection(selectedUnits)
 end
 
-function filterPuppies(units)
+function filterSelection(units)
 	local filtered = {}
 	local n = 0
 	for i = 1, #units do
@@ -231,14 +191,14 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
-		if (UnitDefs[DefID].name==Thunderbird_NAME)  then
+		local unitID = units[i]
+		local unitDefID = GetUnitDefID(unitID)
+		if (unitDefID == Thunderbird_ID)  then
 			if  (TBStack[unitID]==nil) then
 				TBStack[unitID]=landAttackController:new(unitID)
 			end
 		end
-		if (UnitDefs[DefID].name==Airfac_NAME or UnitDefs[DefID].name==Airpad_NAME or UnitDefs[DefID].name==Reef_NAME)then
+		if (unitDefID == Airfac_ID or unitDefID == Airpad_ID or unitDefID == Reef_ID)then
 			LandingPadCount = LandingPadCount+1
 		end
 	end

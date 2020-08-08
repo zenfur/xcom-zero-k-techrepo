@@ -11,7 +11,6 @@ function widget:GetInfo()
    }
 end
 
-local pi = math.pi
 local sin = math.sin
 local cos = math.cos
 local atan = math.atan
@@ -20,11 +19,9 @@ local UPDATE_FRAME=10
 local RecluseStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
 local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
@@ -34,9 +31,8 @@ local GetUnitStates = Spring.GetUnitStates
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local ENEMY_DETECT_BUFFER  = 120
 local Echo = Spring.Echo
-local Recluse_NAME = "spiderskirm"
+local Recluse_ID = UnitDefNames.spiderskirm.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
@@ -59,7 +55,6 @@ local RecluseControllerMT
 local RecluseController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	toggle = false,
 	enemyNear = false,
@@ -116,9 +111,9 @@ local RecluseController = {
 	isEnemyInEffectiveRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
 		if(enemyUnitID)then
-			local DefID = GetUnitDefID(enemyUnitID)
-			if not(DefID == nil)then
-				if (GetUnitIsDead(enemyUnitID) == false and UnitDefs[DefID].isAirUnit==false) then
+			local unitDefID = GetUnitDefID(enemyUnitID)
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(enemyUnitID) == false and UnitDefs[unitDefID].isAirUnit==false) then
 					local enemyPosition = {GetUnitPosition(enemyUnitID)}
 					local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
 					local targetPosRelative={
@@ -158,35 +153,33 @@ local RecluseController = {
 		local rotation, closestShieldRadius
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				local DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
+			local unitDefID = GetUnitDefID(units[i])
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(units[i]) == false and UnitDefs[unitDefID].hasShield == true) then
+					local shieldHealth = {GetUnitShieldState(units[i])}
+					if (shieldHealth[2] and self.damage <= shieldHealth[2])then
+						local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
 
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
+						local targetShieldRadius
+						if (UnitDefs[unitDefID].weapons[2] == nil)then
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].shieldRadius
+						else
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].shieldRadius
+						end
 
-							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+						if not(closestShieldDistance)then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
+						end
 
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 						end
 					end
 				end
@@ -246,7 +239,7 @@ function distance ( x1, y1, x2, y2 )
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Recluse_NAME)
+		if (unitDefID == Recluse_ID)
 		and (unitTeam==GetMyTeamID()) then
 			RecluseStack[unitID] = RecluseController:new(unitID);
 		end
@@ -332,8 +325,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Recluse_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Recluse_ID)  then
 			if  (RecluseStack[units[i]]==nil) then
 				RecluseStack[units[i]]=RecluseController:new(units[i])
 			end

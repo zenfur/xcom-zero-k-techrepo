@@ -11,39 +11,18 @@ function widget:GetInfo()
   }
 end
 
-local pi = math.pi
-local sin = math.sin
-local cos = math.cos
-local atan = math.atan
-local ceil = math.ceil
-local UPDATE_FRAME=30
 local HalbertStack = {}
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetTeamUnits = Spring.GetTeamUnits
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitStates = Spring.GetUnitStates
 local Echo = Spring.Echo
-local Halbert_NAME = "hoverassault"
+local Halbert_ID = UnitDefNames.hoverassault.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
-local CMD_UNIT_SET_TARGET = 34923
-local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_OPT_SHIFT = CMD.OPT_SHIFT
-local CMD_INSERT = CMD.INSERT
-local CMD_ATTACK = CMD.ATTACK
-local CMD_MOVE = CMD.MOVE
-local CMD_REMOVE = CMD.REMOVE
 local CMD_FIRE_STATE = CMD.FIRE_STATE
 
 
@@ -121,7 +100,7 @@ AttackModeControllerMT = {__index=AttackModeController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Halbert_NAME)
+		if (unitDefID == Halbert_ID)
 		and (unitTeam==GetMyTeamID()) then
 			HalbertStack[unitID] = AttackModeController:new(unitID);
 		end
@@ -202,8 +181,8 @@ function widget:Initialize()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
 		local unitID = units[i]
-		local DefID = GetUnitDefID(unitID)
-		if (UnitDefs[DefID].name==Halbert_NAME)  then
+		local unitDefID = GetUnitDefID(unitID)
+		if (unitDefID == Halbert_ID)  then
 			if  (HalbertStack[unitID]==nil) then
 				HalbertStack[unitID]=AttackModeController:new(unitID)
 			end

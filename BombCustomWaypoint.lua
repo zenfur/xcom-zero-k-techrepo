@@ -11,63 +11,39 @@ function widget:GetInfo()
 	}
 end
 
-local GL_LINE_STRIP = GL.LINE_STRIP
-local glLineWidth = gl.LineWidth
 local glColor = gl.Color
 local glBeginEnd = gl.BeginEnd
 local glVertex = gl.Vertex
 local circleList
 
 local FactoryStack = {}
-local GetUnitHeading = Spring.GetUnitHeading
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local GetUnitStates = Spring.GetUnitStates
 local GetTeamUnits = Spring.GetTeamUnits
-local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local Echo = Spring.Echo
-local Shieldfac_NAME = "factoryshield"
-local Amphfac_NAME = "factoryamph"
-local Jumpfac_NAME = "factoryjump"
-local Cloakfac_NAME = "factorycloak"
-local Gunshipfac_NAME = "factorygunship"
-local Imp_NAME = "cloakbomb"
-local Scuttle_NAME = "jumpbomb"
-local Snitch_NAME = "shieldbomb"
-local Limpet_NAME = "amphbomb"
-local Blastwing_NAME = "gunshipbomb"
-local ENEMY_DETECT_BUFFER  = 40
+local Shieldfac_ID = UnitDefNames.factoryshield.id
+local Amphfac_ID = UnitDefNames.factoryamph.id
+local Jumpfac_ID = UnitDefNames.factoryjump.id
+local Cloakfac_ID = UnitDefNames.factorycloak.id
+local Gunshipfac_ID = UnitDefNames.factorygunship.id
+local Imp_ID = UnitDefNames.cloakbomb.id
+local Scuttle_ID = UnitDefNames.jumpbomb.id
+local Snitch_ID = UnitDefNames.shieldbomb.id
+local Limpet_ID = UnitDefNames.amphbomb.id
+local Blastwing_ID = UnitDefNames.gunshipbomb.id
 local GetSpecState = Spring.GetSpectatingState
 local pi = math.pi
-local FULL_CIRCLE_RADIANT = 2 * pi
-local HEADING_TO_RAD = (pi*2/65536 )
-local CMD_UNIT_SET_TARGET = 34923
-local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_MOVE = CMD.MOVE
 local CMD_RAW_MOVE  = 31109
 local CMD_FIRE_STATE = CMD.FIRE_STATE
-local CMD_UNIT_AI = 36214
 local selectedFactories = nil
 
 local sin = math.sin
 local cos = math.cos
-local atan = math.atan
 
 local CMD_SET_BOMB_WAYPOINT = 19812
-local ShieldfacUnitDefID = UnitDefNames["factoryshield"].id
-local CloakfacUnitDefID = UnitDefNames["factorycloak"].id
-local AmphfacUnitDefID = UnitDefNames["factoryamph"].id
-local JumpfacUnitDefID = UnitDefNames["factoryjump"].id
-local GunshipfacUnitDefID = UnitDefNames["factorygunship"].id
 
 local cmdSetBombWayPoint = {
 	id      = CMD_SET_BOMB_WAYPOINT,
@@ -82,9 +58,6 @@ local cmdSetBombWayPoint = {
 
 local FactoryWaypointControllerMT
 local FactoryWaypointController = {
-	allyTeamID = GetMyAllyTeamID(),
-
-
 	new = function(index, unitID)
 		--Echo("FactoryWaypointController added:" .. unitID)
 		local self = {}
@@ -110,31 +83,25 @@ FactoryWaypointControllerMT = {__index=FactoryWaypointController}
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if not(FactoryStack[builderID]==nil) and FactoryStack[builderID].targetParams~=nil and (unitTeam==GetMyTeamID())then
-		if (UnitDefs[unitDefID].name==Scuttle_NAME or UnitDefs[unitDefID].name==Snitch_NAME or UnitDefs[unitDefID].name==Limpet_NAME or UnitDefs[unitDefID].name==Imp_NAME or UnitDefs[unitDefID].name==Blastwing_NAME)then
+		if (unitDefID == Scuttle_ID or unitDefID == Snitch_ID or unitDefID.id == Limpet_ID or unitDefID.id == Imp_ID or unitDefID == Blastwing_ID)then
 			GiveOrderToUnit(unitID, CMD_RAW_MOVE, {FactoryStack[builderID].targetParams[1], FactoryStack[builderID].targetParams[2], FactoryStack[builderID].targetParams[3]},0)
 		end
 	end
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME or UnitDefs[unitDefID].name==Gunshipfac_NAME)
+	if (unitDefID == Jumpfac_ID or unitDefID == Shieldfac_ID or unitDefID == Amphfac_ID or unitDefID == Cloakfac_ID or unitDefID ==Gunshipfac_ID)
 			and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
 		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
 	end
 end
 
 function widget:UnitGiven(unitID, unitDefID, unitTeam, oldTeam)
-	if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME or UnitDefs[unitDefID].name==Gunshipfac_NAME)
-			and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
-		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
-	end
+	widget:UnitFinished(unitID, unitDefID, unitTeam)
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if (UnitDefs[unitDefID].name==Jumpfac_NAME or UnitDefs[unitDefID].name==Shieldfac_NAME or UnitDefs[unitDefID].name==Amphfac_NAME or UnitDefs[unitDefID].name==Cloakfac_NAME or UnitDefs[unitDefID].name==Gunshipfac_NAME)
-			and (unitTeam==GetMyTeamID() and FactoryStack[unitID]==nil) then
-		FactoryStack[unitID] = FactoryWaypointController:new(unitID);
-	end
+	widget:UnitDestroyed(unitID)
 end
 
 
@@ -168,7 +135,8 @@ function filterFactories(units)
 	local n = 0
 	for i = 1, #units do
 		local unitID = units[i]
-		if (CloakfacUnitDefID == GetUnitDefID(unitID) or JumpfacUnitDefID == GetUnitDefID(unitID) or ShieldfacUnitDefID == GetUnitDefID(unitID) or AmphfacUnitDefID == GetUnitDefID(unitID) or GunshipfacUnitDefID == GetUnitDefID(unitID)) then
+		local unitDefID = GetUnitDefID(unitID)
+		if (Cloakfac_ID == unitDefID or Jumpfac_ID == unitDefID or Shieldfac_ID == unitDefID or Amphfac_ID == unitDefID or Gunshipfac_ID == unitDefID) then
 			n = n + 1
 			filtered[n] = unitID
 		end
@@ -235,8 +203,8 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Jumpfac_NAME or UnitDefs[DefID].name==Shieldfac_NAME or UnitDefs[DefID].name==Amphfac_NAME or UnitDefs[DefID].name==Cloakfac_NAME or UnitDefs[DefID].name==Gunshipfac_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (Cloakfac_ID == unitDefID or Jumpfac_ID == unitDefID or Shieldfac_ID == unitDefID or Amphfac_ID == unitDefID or Gunshipfac_ID == unitDefID)  then
 			if  (FactoryStack[units[i]]==nil) then
 				FactoryStack[units[i]]=FactoryWaypointController:new(units[i])
 			end

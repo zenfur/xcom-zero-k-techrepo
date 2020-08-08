@@ -23,20 +23,16 @@ local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
 local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local target = Spring.SetUnitTarget
 local GetUnitShieldState = Spring.GetUnitShieldState
-local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitStates = Spring.GetUnitStates
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local ENEMY_DETECT_BUFFER  = 72
 local Echo = Spring.Echo
-local Faraday_NAME = "turretemp"
+local Faraday_ID = UnitDefNames.turretemp.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
 local CMD_ATTACK = CMD.ATTACK
 local CMD_STOP = CMD.STOP
 
@@ -87,23 +83,19 @@ local FaradayController = {
 	--isEnemyInRangeV2 = function (self)
 	--	local OptimalTarget = 0
 	--	local OptimalTargetID = 0
-	--	for i=1, units=#GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range)) do
-		--	if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-			--	if  (GetUnitIsDead(units[i]) == false) then
-			--		local targetsInArea = 0
-			--		local targettedArea = {GetUnitPosition(units[i])}
-			--		for i=1, units=#GetUnitsInSphere(GetUnitsInSphere(targettedArea[1], targettedArea[2], targettedArea[3], 70)) do
-			--			if not (GetUnitAllyTeam(ID) == self.allyTeamID) then
-			--				if  (GetUnitIsDead(ID) == false) then
-			--					targetsInArea = targetsInArea +1
-			--				end
-			--			end
-			--		end
-			--		if (targetsInArea > OptimalTarget) then
-			--			OptimalTarget = targetsInArea
-			--			OptimalTargetID = units[i]
-			--		end
-			--	end
+	--	for i=1, units=#GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range, Spring.ENEMY_UNITS)) do
+		--	if (GetUnitIsDead(units[i]) == false) then
+		--		local targetsInArea = 0
+		--		local targettedArea = {GetUnitPosition(units[i])}
+		--		for i=1, units=#GetUnitsInSphere(GetUnitsInSphere(targettedArea[1], targettedArea[2], targettedArea[3], 70), self.allyTeamID) do
+		--			if (GetUnitIsDead(ID) == false) then
+		--				targetsInArea = targetsInArea +1
+		--			end
+		--		end
+		--		if (targetsInArea > OptimalTarget) then
+		--			OptimalTarget = targetsInArea
+		--			OptimalTargetID = units[i]
+		--		end
 		--	end
 		--end
 		--if not(OptimalTarget == 0) then
@@ -117,9 +109,9 @@ local FaradayController = {
 	isEnemyInEffectiveRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
 		if(enemyUnitID)then
-			local DefID = GetUnitDefID(enemyUnitID)
-			if not(DefID == nil)then
-				if (GetUnitIsDead(enemyUnitID) == false and UnitDefs[DefID].isAirUnit==false) then
+			local unitDefID = GetUnitDefID(enemyUnitID)
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(enemyUnitID) == false and UnitDefs[unitDefID].isAirUnit==false) then
 					local enemyPosition = {GetUnitPosition(enemyUnitID)}
 					local rotation = atan((self.pos[1]-enemyPosition[1])/(self.pos[3]-enemyPosition[3]))
 					local targetPosRelative={
@@ -178,35 +170,33 @@ local FaradayController = {
 		local closestShieldRadius, rotation
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				local DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
+			local unitDefID = GetUnitDefID(units[i])
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(units[i]) == false and UnitDefs[unitDefID].hasShield == true) then
+					local shieldHealth = {GetUnitShieldState(units[i])}
+					if (shieldHealth[2] and self.damage <= shieldHealth[2])then
+						local enemyPositionX, enemyPositionY,enemyPositionZ = GetUnitPosition(units[i])
 
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
+						local targetShieldRadius
+						if (UnitDefs[unitDefID].weapons[2] == nil)then
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].shieldRadius
+						else
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].shieldRadius
+						end
 
-							local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+						if not(closestShieldDistance)then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
+						end
 
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 						end
 					end
 				end
@@ -262,7 +252,7 @@ function distance ( x1, y1, x2, y2 )
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Faraday_NAME)
+		if (unitDefID == Faraday_ID)
 		and (unitTeam==GetMyTeamID()) then
 			FaradayStack[unitID] = FaradayController:new(unitID);
 		end
@@ -294,8 +284,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = Spring.GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Faraday_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Faraday_ID)  then
 			if  (FaradayStack[units[i]]==nil) then
 				FaradayStack[units[i]]=FaradayController:new(units[i])
 			end

@@ -11,43 +11,23 @@ function widget:GetInfo()
   }
 end
 
-local pi = math.pi
 local sin = math.sin
 local cos = math.cos
 local atan = math.atan
-local ceil = math.ceil
 local SwiftStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetTeamUnits = Spring.GetTeamUnits
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local GetUnitHealth = Spring.GetUnitHealth
-local GetUnitStates = Spring.GetUnitStates
-local GetUnitMoveTypeData = Spring.GetUnitMoveTypeData
-local ENEMY_DETECT_BUFFER  = 74
 local Echo = Spring.Echo
-local initDone = false
-local Swift_NAME = "planefighter"
+local Swift_ID = UnitDefNames.planefighter.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
-local CMD_UNIT_SET_TARGET = 34923
-local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_OPT_SHIFT = CMD.OPT_SHIFT
-local CMD_INSERT = CMD.INSERT
-local CMD_ATTACK = CMD.ATTACK
 local CMD_MOVE = CMD.MOVE
 local CMD_RAW_MOVE  = 31109
-local CMD_REMOVE = CMD.REMOVE
-local CMD_OPT_INTERNAL = CMD.OPT_INTERNAL
-local CMD_AP_FLY_STATE = 34569
 
 local CMD_TOGGLE_FLIGHT = 145
 local CMD_LAND_ATTACK = 19996
@@ -69,7 +49,6 @@ local landAttackControllerMT
 local landAttackController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	targetParams,
 
@@ -130,7 +109,7 @@ landAttackControllerMT = {__index = landAttackController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Swift_NAME)
+	if (unitDefID == Swift_ID)
 	and (unitTeam==GetMyTeamID()) then
 		SwiftStack[unitID] = landAttackController:new(unitID);
 	end
@@ -143,7 +122,7 @@ function widget:UnitDestroyed(unitID)
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
-	if (cmdID == CMD_RAW_MOVE and UnitDefs[unitDefID].name == Swift_NAME) then
+	if (cmdID == CMD_RAW_MOVE and unitDefID == Swift_ID) then
 		if (SwiftStack[unitID]) then
 			GiveOrderToUnit(unitID, CMD_TOGGLE_FLIGHT, 0, {""}, 0)
 			return
@@ -215,9 +194,9 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
-		if (UnitDefs[DefID].name==Swift_NAME)  then
+		local unitID = units[i]
+		local unitDefID = GetUnitDefID(unitID)
+		if (unitDefID == Swift_ID)  then
 			if  (SwiftStack[unitID]==nil) then
 				SwiftStack[unitID]=landAttackController:new(unitID)
 			end

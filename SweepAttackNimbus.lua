@@ -17,27 +17,21 @@ local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local Echo = Spring.Echo
-local Nimbus_NAME = "gunshipheavyskirm"
+local Nimbus_ID = UnitDefNames.gunshipheavyskirm.id
 local ENEMY_DETECT_BUFFER  = 150
 local GetSpecState = Spring.GetSpectatingState
 local pi = math.pi
-local FULL_CIRCLE_RADIANT = 2 * pi
 local HEADING_TO_RAD = (pi*2/65536 )
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_MOVE = CMD.MOVE
 local selectedSweepers = nil
-local atan = math.atan
 local sin = math.sin
 local cos = math.cos
 
@@ -60,7 +54,6 @@ local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	rotation = 0,
 	toggle = false,
@@ -151,7 +144,7 @@ SweeperControllerMT = {__index = SweeperController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Nimbus_NAME)
+		if (unitDefID == Nimbus_ID)
 		and (unitTeam==GetMyTeamID()) then
 			SweeperStack[unitID] = SweeperController:new(unitID);
 		end
@@ -237,8 +230,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Nimbus_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Nimbus_ID)  then
 			if  (SweeperStack[units[i]]==nil) then
 				SweeperStack[units[i]]=SweeperController:new(units[i])
 			end

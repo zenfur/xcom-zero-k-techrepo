@@ -10,7 +10,6 @@ function widget:GetInfo()
    }
 end
 
-local pi = math.pi
 local sin = math.sin
 local cos = math.cos
 local atan = math.atan
@@ -19,13 +18,10 @@ local UPDATE_FRAME=4
 local ModeratorStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
 local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
@@ -35,15 +31,15 @@ local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
 local ENEMY_DETECT_BUFFER  = 40
 local Echo = Spring.Echo
-local Moderator_NAME = "jumpskirm"
-local Solar_NAME = "energysolar"
-local Wind_NAME = "energywind"
-local Razor_NAME = "turretaalaser"
-local Metal_NAME = "staticmex"
-local Halbert_NAME = "hoverassault"
-local Gauss_NAME = "turretgauss"
-local Faraday_NAME = "turretemp"
-local Badger_Mine_NAME = "wolverine_mine"
+local Moderator_ID = UnitDefNames.jumpskirm.id
+local Solar_ID = UnitDefNames.energysolar.id
+local Wind_ID = UnitDefNames.energywind.id
+local Razor_ID = UnitDefNames.turretaalaser.id
+local Metal_ID = UnitDefNames.staticmex.id
+local Halbert_ID = UnitDefNames.hoverassault.id
+local Gauss_ID = UnitDefNames.turretgauss.id
+local Faraday_ID = UnitDefNames.turretemp.id
+local Badger_Mine_ID = UnitDefNames.wolverine_mine.id
 local GetSpecState = Spring.GetSpectatingState
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
@@ -56,7 +52,6 @@ local ModeratorControllerMT
 local ModeratorController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	damage,
 	forceTarget,
@@ -87,37 +82,34 @@ local ModeratorController = {
 	end,
 
 	isEnemyInRange = function (self)
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+ENEMY_DETECT_BUFFER, Spring.ENEMY_UNITS)
 		local target = nil
 		for i=1, #units do
-			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-
-				enemyPosition = {GetUnitPosition(units[i])}
-				if(enemyPosition[2]>-30)then
-					if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
-						GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
-						return true
-					end
-						DefID = GetUnitDefID(units[i])
-						if not(DefID == nil)then
-						if  (GetUnitIsDead(units[i]) == false)then
-							local hasArmor = GetUnitArmored(units[i])
-							if not(UnitDefs[DefID].name == Solar_NAME
-							or UnitDefs[DefID].name == Wind_NAME
-							or UnitDefs[DefID].name == Badger_Mine_NAME
-							or (UnitDefs[DefID].name == Razor_NAME
-							or UnitDefs[DefID].name == Gauss_NAME
-							or UnitDefs[DefID].name == Faraday_NAME
-							or UnitDefs[DefID].name == Halbert_NAME) and hasArmor
-							or UnitDefs[DefID].name == Metal_NAME) then
-								if (target == nil) then
-									target = units[i]
-								end
-								if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[DefID].metalCost)then
-									target = units[i]
-								end
-
+			local enemyPosition = {GetUnitPosition(units[i])}
+			if(enemyPosition[2]>-30)then
+				if (units[i]==self.forceTarget and GetUnitIsDead(units[i]) == false)then
+					GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
+					return true
+				end
+					local unitDefID = GetUnitDefID(units[i])
+					if not(unitDefID == nil)then
+					if  (GetUnitIsDead(units[i]) == false)then
+						local hasArmor = GetUnitArmored(units[i])
+						if not(unitDefID == Solar_ID
+						or unitDefID == Wind_ID
+						or unitDefID == Badger_Mine_ID
+						or (unitDefID == Razor_ID
+						or unitDefID == Gauss_ID
+						or unitDefID == Faraday_ID
+						or unitDefID == Halbert_ID) and hasArmor
+						or unitDefID == Metal_ID) then
+							if (target == nil) then
+								target = units[i]
 							end
+							if (UnitDefs[GetUnitDefID(target)].metalCost < UnitDefs[unitDefID].metalCost)then
+								target = units[i]
+							end
+
 						end
 					end
 				end
@@ -133,36 +125,33 @@ local ModeratorController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
+		local closestShieldID, closestShieldRadius, closestShieldDistance, rotation
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
+			local unitDefID = GetUnitDefID(units[i])
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(units[i]) == false and UnitDefs[unitDefID].hasShield == true) then
+					local shieldHealth = {GetUnitShieldState(units[i])}
+					if (shieldHealth[2] and self.damage <= shieldHealth[2])then
+						local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
 
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
+						local targetShieldRadius
+						if (UnitDefs[unitDefID].weapons[2] == nil)then
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].shieldRadius
+						else
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].shieldRadius
+						end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-							end
+						local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+						if not(closestShieldDistance)then
+							closestShieldDistance = enemyShieldDistance
+						end
 
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 						end
 					end
 				end
@@ -176,7 +165,7 @@ local ModeratorController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
@@ -216,7 +205,7 @@ function distance ( x1, y1, x2, y2 )
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOpts, cmdTag)
-	if (UnitDefs[unitDefID].name == Moderator_NAME and cmdID == CMD_ATTACK  and #cmdParams == 1) then
+	if (unitDefID == Moderator_ID and cmdID == CMD_ATTACK  and #cmdParams == 1) then
 		if (ModeratorStack[unitID])then
 			ModeratorStack[unitID]:setForceTarget(cmdParams)
 		end
@@ -224,14 +213,14 @@ function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams, cmdOp
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Moderator_NAME)
+		if (unitDefID == Moderator_ID)
 		and (unitTeam==GetMyTeamID()) then
 			ModeratorStack[unitID] = ModeratorController:new(unitID);
 		end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if (UnitDefs[unitDefID].name==Moderator_NAME)
+	if (unitDefID == Moderator_ID)
 		and not ModeratorStack[unitID] then
 		ModeratorStack[unitID] = ModeratorController:new(unitID);
 	end
@@ -263,8 +252,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Moderator_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Moderator_ID)  then
 			if  (ModeratorStack[units[i]]==nil) then
 				ModeratorStack[units[i]]=ModeratorController:new(units[i])
 			end

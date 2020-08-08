@@ -11,36 +11,43 @@ function widget:GetInfo()
 end
 local UPDATE_FRAME=10
 local SolarStack = {}
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local IsUnitSelected = Spring.IsUnitSelected
 local GetTeamUnits = Spring.GetTeamUnits
 local Echo = Spring.Echo
-local Solar_NAME = "energysolar"
-local Wind_NAME = "energywind"
-local Swift_NAME = "planefighter"
-local Owl_NAME = "planescout"
-local Raptor_NAME = "planeheavyfighter"
-local Trident_NAME = "gunshipaa"
-local Angler_NAME = "amphaa"
-local Germlin_NAME = "cloakaa"
-local Flail_NAME = "hoveraa"
-local Toad_NAME = "jumpaa"
-local Vandal_NAME = "shieldaa"
-local Zephyr_NAME = "shipaa"
-local Tarantula_NAME = "spideraa"
-local Ettin_NAME = "tankaa"
-local Gnat_NAME = "gunshipemp"
-local Widow_NAME = "spiderantiheavy"
-local Welder_NAME = "tankcon"
-local Metal_NAME = "staticmex"
+
+local Solar_ID = UnitDefNames.energysolar.id
+local Welder_ID = UnitDefNames.tankcon.id
+
+local ignoreUnitDefs = {
+	[UnitDefNames.planefighter.id] = true,
+	[UnitDefNames.planeheavyfighter.id] = true,
+	[UnitDefNames.gunshipaa.id] = true,
+	[UnitDefNames.amphaa.id] = true,
+	[UnitDefNames.cloakaa.id] = true,
+	[UnitDefNames.hoveraa.id] = true,
+	[UnitDefNames.jumpaa.id] = true,
+	[UnitDefNames.shieldaa.id] = true,
+	[UnitDefNames.shipaa.id] = true,
+	[UnitDefNames.spideraa.id] = true,
+	[UnitDefNames.tankaa.id] = true,
+	[UnitDefNames.planescout.id] = true,
+	[UnitDefNames.planelightscout.id] = true,
+	[UnitDefNames.energywind.id] = true,
+	[UnitDefNames.staticmex.id] = true,
+	[Solar_ID] = true,
+}
+-- precalculate the unitDefIDs we want to ignore
+for unitDefID,unitDef in pairs(UnitDefs) do
+	if UnitDefs[unitDefID].isBuilder and UnitDefs[unitDefID].energyStorage == 0 and unitDefID ~= Welder_ID then
+		ignoreUnitDefs[unitDefID] = true
+	end
+end
 
 local GetSpecState = Spring.GetSpectatingState
 local CMD_STOP = CMD.STOP
@@ -73,33 +80,14 @@ local SolarAI = {
 	isEnemyInRange = function (self)
 		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range, Spring.ENEMY_UNITS)
 		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				if  (GetUnitIsDead(units[i]) == false) then
-					local DefID = GetUnitDefID(units[i])
-					if (DefID ~= nil and not(UnitDefs[DefID].isBuilder and UnitDefs[DefID].energyStorage == 0 and UnitDefs[DefID].name~=Welder_NAME
-					or UnitDefs[DefID].name==Swift_NAME
-					or UnitDefs[DefID].name==Raptor_NAME
-					or UnitDefs[DefID].name==Trident_NAME
-					or UnitDefs[DefID].name==Angler_NAME
-					or UnitDefs[DefID].name==Germlin_NAME
-					or UnitDefs[DefID].name==Toad_NAME
-					or UnitDefs[DefID].name==Flail_NAME
-					or UnitDefs[DefID].name==Vandal_NAME
-					or UnitDefs[DefID].name==Tarantula_NAME
-					or UnitDefs[DefID].name==Ettin_NAME
-					or UnitDefs[DefID].name==Gnat_NAME
-					or UnitDefs[DefID].name==Widow_NAME
-					or UnitDefs[DefID].name==Solar_NAME
-					or UnitDefs[DefID].name==Zephyr_NAME
-					or UnitDefs[DefID].name==Wind_NAME
-					or UnitDefs[DefID].name==Metal_NAME
-					or UnitDefs[DefID].name==Owl_NAME))then
-						if (self.enemyNear == false)then
-							GiveOrderToUnit(self.unitID,CMD_ONOFF, 0,{""})
-							self.enemyNear = true
-						end
-						return true
+			if (GetUnitIsDead(units[i]) == false) then
+				local unitDefID = GetUnitDefID(units[i])
+				if (unitDefID ~= nil and not ignoreUnitDefs[unitDefID]) then
+					if (self.enemyNear == false)then
+						GiveOrderToUnit(self.unitID,CMD_ONOFF, 0,{""})
+						self.enemyNear = true
 					end
+					return true
 				end
 			end
 		end
@@ -119,14 +107,14 @@ SolarAIMT = {__index=SolarAI}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Solar_NAME)
+		if (unitDefID == Solar_ID)
 		and (unitTeam==GetMyTeamID()) then
 			SolarStack[unitID] = SolarAI:new(unitID);
 		end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if ((UnitDefs[unitDefID].name==Solar_NAME)
+	if ((unitDefID == Solar_ID)
 		and not SolarStack[unitID]) then
 			SolarStack[unitID] = SolarAI:new(unitID)
 	end
@@ -159,9 +147,9 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Solar_NAME)  then
-			if  (SolarStack[units[i]]==nil) then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Solar_ID)  then
+			if (SolarStack[units[i]]==nil) then
 				SolarStack[units[i]]=SolarAI:new(units[i])
 			end
 		end

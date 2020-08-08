@@ -87,8 +87,7 @@ local Echo            = Spring.Echo
 
 -- @formatter:off
 local CMD_LAND_ATTACK = 19996
-local SWIFT_NAME      = "planefighter"
-local SWIFT_DEF_ID    = UnitDefNames[SWIFT_NAME].id
+local SWIFT_ID        = UnitDefNames.planefighter.id
 
 local CMD_LAND_ATTACK_DEF = {
     id      = CMD_LAND_ATTACK,
@@ -268,7 +267,7 @@ function find_land_attackers(units)
     local n = 0
     for i = 1, #units do
         local unit_id = units[i]
-        if (SWIFT_DEF_ID == GetUnitDefID(unit_id)) then
+        if (SWIFT_ID == GetUnitDefID(unit_id)) then
             n = n + 1
             res[n] = unit_id
         end
@@ -281,7 +280,7 @@ function find_land_attackers(units)
 end
 
 function widget:UnitFinished(unit_id, unit_def_if, unit_team)
-    if (unit_def_if == SWIFT_DEF_ID and unit_team == GetMyTeamID()) then
+    if (unit_def_if == SWIFT_ID and unit_team == GetMyTeamID()) then
         land_attacker_controllers[unit_id] = LandAttackerController:new(unit_id);
     end
 end
@@ -316,7 +315,7 @@ end
 --- (Synced/Unsynced shared)
 function widget:UnitCommand(unit_id, unit_def_if, unit_team, cmd_id, cmd_params, cmd_opts, cmd_tag)
     if is_debug then debug_cmd("UnitCommand", unit_id, cmd_id, cmd_params, cmd_opts) end
-    if (unit_def_if == SWIFT_DEF_ID) then
+    if (unit_def_if == SWIFT_ID) then
         local ctrl = land_attacker_controllers[unit_id]
         if (ctrl) then ctrl:process_cmd(cmd_id) end
     end
@@ -382,7 +381,7 @@ function widget:Initialize()
     local units = GetTeamUnits(GetMyTeamID())
     for i = 1, #units do
         local unit_id = units[i]
-        if (UnitDefs[GetUnitDefID(unit_id)].name == SWIFT_NAME) then
+        if (GetUnitDefID(unit_id) == SWIFT_ID) then
             if (land_attacker_controllers[unit_id] == nil) then
                 land_attacker_controllers[unit_id] = LandAttackerController:new(unit_id)
             end

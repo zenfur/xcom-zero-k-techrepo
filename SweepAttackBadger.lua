@@ -17,9 +17,6 @@ local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
@@ -27,18 +24,15 @@ local GetUnitStates = Spring.GetUnitStates
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local Echo = Spring.Echo
-local Badger_NAME = "veharty"
+local Badger_ID = UnitDefNames.veharty.id
 local ENEMY_DETECT_BUFFER  = 40
 local GetSpecState = Spring.GetSpectatingState
 local pi = math.pi
-local FULL_CIRCLE_RADIANT = 2 * pi
 local HEADING_TO_RAD = (pi*2/65536 )
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_MOVE = CMD.MOVE
 local CMD_FIRE_STATE = CMD.FIRE_STATE
-local CMD_UNIT_AI = 36214
 local selectedSweepers = nil
 
 local sin = math.sin
@@ -73,7 +67,6 @@ local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	rotation = 0,
 	toggle = false,
@@ -214,7 +207,7 @@ SweeperControllerMT={__index=SweeperController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Badger_NAME)
+	if (unitDefID == Badger_ID)
 			and (unitTeam==GetMyTeamID()) then
 		SweeperStack[unitID] = SweeperController:new(unitID);
 	end
@@ -321,8 +314,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		local DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Badger_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Badger_ID)  then
 			if  (SweeperStack[units[i]]==nil) then
 				SweeperStack[units[i]]=SweeperController:new(units[i])
 			end
