@@ -234,7 +234,7 @@ local CaretakerController = {
 
 		--]]
 		if (self.currentJob == JOB_OVERRIDE and self.jobTargetID)then
-			local targetPositionX, targetPositionY, targetPositionZ = GetUnitPosition(self.jobTargetID)
+			local targetPositionX, targetPositionY, targetPositionZ = GetThingPosition(self.jobTargetID)
 			if(distance(self.pos[1],self.pos[3],targetPositionX,targetPositionZ)>self.range)then
 				self.currentJob = JOB_IDLE
 			end
@@ -282,6 +282,15 @@ function distance ( x1, y1, x2, y2 )
 	local dx = (x1 - x2)
 	local dy = (y1 - y2)
 	return sqrt ( dx * dx + dy * dy )
+end
+
+local maxUnits = Game.maxUnits
+function GetThingPosition(thingID)
+	if thingID < maxUnits then
+		return GetUnitPosition(thingID)
+	else
+		return GetFeaturePosition(thingID - maxUnits)
+	end
 end
 
 function widget:CommandNotify(cmdID, params, options)
