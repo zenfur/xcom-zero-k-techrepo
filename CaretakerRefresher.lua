@@ -48,8 +48,9 @@ local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitStates = Spring.GetUnitStates
-local GetFeatureHealth = Spring.GetFeatureHealth
+local GetFeatureDefID = Spring.GetFeatureDefID
 
+local GetFeatureHealth = Spring.GetFeatureHealth
 --[[
  ( number featureID ) -> nil | number health, number maxHealth, number resurrectProgress
 --]]
@@ -61,11 +62,6 @@ local GetUnitHealth = Spring.GetUnitHealth
 local GetFeaturesInCylinder = Spring.GetFeaturesInCylinder
 --[[ ( number x, number z, number radius )
   -> featureTable = { [1] = number featureID, etc... }
---]]
-local GetFeatureResources = Spring.GetFeatureResources
---[[
-( number featureID ) -> nil | number RemainingMetal, number maxMetal,
-  number RemainingEnergy, number maxEnergy, number reclaimLeft, number reclaimTime
 --]]
 local GetFeaturePosition = Spring.GetFeaturePosition
 --[[
@@ -113,6 +109,17 @@ local JOB_GUARD = 5
 local JOB_IDLE = 999
 
 local EMPTY_TABLE = {}
+
+local unreclaimable = {}
+
+-- Keep track of unreclaimable features to avoid repeated FeatureDefs access
+-- There are usually very few kinds of unreclaimable features, typically provided by the map,
+-- so storing the inverted condition makes the table quite a lot smaller.
+for featureDefID,fd in ipairs(FeatureDefs) do
+	if not fd.reclaimable then
+		unreclaimable[featureDefID] = true
+	end
+end
 
 local selectedCaretakers
 
@@ -168,15 +175,13 @@ local CaretakerController = {
 		-- find ally repair jobs in the area
 
 		local max_dist = 0.0
-		local total_metal = 0.0
 		for index, w in ipairs(wrecks) do
 			if w and GetFeatureHealth(w) then
-				local metal  = select(1, GetFeatureResources(w))
+				local featureDefID = GetFeatureDefID(w)
 				local resurrect_progress = select(3, GetFeatureHealth(w))
 				local xx, yy, zz = GetFeaturePosition(w)
 				local dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
-				if metal > 0 and resurrect_progress == 0 then
-					total_metal = total_metal + metal
+				if not unreclaimable[featureDefID] and resurrect_progress == 0 then
 					if dist > max_dist then
 						reclaim_job = w
 						max_dist = dist
