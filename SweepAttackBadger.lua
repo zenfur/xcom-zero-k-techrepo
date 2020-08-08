@@ -17,9 +17,6 @@ local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
@@ -27,18 +24,15 @@ local GetUnitStates = Spring.GetUnitStates
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local Echo = Spring.Echo
-local Badger_NAME = "veharty"
+local Badger_ID = UnitDefNames.veharty.id
 local ENEMY_DETECT_BUFFER  = 40
 local GetSpecState = Spring.GetSpectatingState
 local pi = math.pi
-local FULL_CIRCLE_RADIANT = 2 * pi
 local HEADING_TO_RAD = (pi*2/65536 )
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_MOVE = CMD.MOVE
 local CMD_FIRE_STATE = CMD.FIRE_STATE
-local CMD_UNIT_AI = 36214
 local selectedSweepers = nil
 
 local sin = math.sin
@@ -69,11 +63,10 @@ local cmdSweepDefault = {
 	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
-
+local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	rotation = 0,
 	toggle = false,
@@ -83,12 +76,10 @@ local SweeperController = {
 	fireStateGot = false,
 	default = true,
 
-
-
-
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("SweeperController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, SweeperControllerMT)
 		self.unitID = unitID
 		self.range = (GetUnitMaxRange(self.unitID)-15)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -211,11 +202,12 @@ local SweeperController = {
 		end
 	end
 }
+SweeperControllerMT={__index=SweeperController}
 
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Badger_NAME)
+	if (unitDefID == Badger_ID)
 			and (unitTeam==GetMyTeamID()) then
 		SweeperStack[unitID] = SweeperController:new(unitID);
 	end
@@ -233,22 +225,6 @@ function widget:GameFrame(n)
 			sweeper:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 
@@ -329,7 +305,7 @@ end
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
@@ -338,8 +314,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Badger_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Badger_ID)  then
 			if  (SweeperStack[units[i]]==nil) then
 				SweeperStack[units[i]]=SweeperController:new(units[i])
 			end

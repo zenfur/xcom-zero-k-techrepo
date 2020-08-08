@@ -14,51 +14,37 @@ local currentFrame = 0
 local StriderStack = {}
 local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 
 
-local Ultimatum_NAME = "striderantiheavy"
-local Scorpion_NAME = "striderscorpion"
-local Dante_NAME = "striderdante"
+local Ultimatum_ID = UnitDefNames.striderantiheavy.id
 
-local GetUnitWeaponState = Spring.GetUnitWeaponState
 local GetUnitIsCloaked = Spring.GetUnitIsCloaked
-local GetUnitStates = Spring.GetUnitStates
 local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local IsUnitSelected = Spring.IsUnitSelected
 local GetTeamUnits = Spring.GetTeamUnits
-local GetTeamResources = Spring.GetTeamResources
-local MarkerAddPoint = Spring.MarkerAddPoint
-local GetCommandQueue = Spring.GetCommandQueue
-local team_id
 local Echo = Spring.Echo
 local CMD_STOP = CMD.STOP
-local CMD_OPT_SHIFT = CMD.OPT_SHIFT
-local CMD_INSERT = CMD.INSERT
-local CMD_MOVE = CMD.MOVE
-local CMD_ATTACK_MOVE_ID = 16
 
 local GetSpecState = Spring.GetSpectatingState
 
 
+local UltimatumSelfDefenceAIMT
 local UltimatumSelfDefenceAI = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	cooldownFrame,
 	reloadTime,
 	enemyNear = false,
 
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("UltimatumSelfDefenceAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, UltimatumSelfDefenceAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -73,20 +59,18 @@ local UltimatumSelfDefenceAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isThreatInRange = function (self)
 		if(GetUnitIsCloaked(self.unitID)==false)then
 			self.pos = {GetUnitPosition(self.unitID)}
-			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+			local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 			for i=1, #units do
-				if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					if  (GetUnitIsDead(units[i]) == false) then
-						DefID = GetUnitDefID(units[i])
-						if not(DefID == nil)then
-							if(UnitDefs[DefID].metalCost >= 1500 and UnitDefs[DefID].isAirUnit==false)then
-								GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
-								return true
-							end
+				if (GetUnitIsDead(units[i]) == false) then
+					local unitDefID = GetUnitDefID(units[i])
+					if not(unitDefID == nil)then
+						if(UnitDefs[unitDefID].metalCost >= 1500 and UnitDefs[unitDefID].isAirUnit==false)then
+							GiveOrderToUnit(self.unitID,CMD_UNIT_SET_TARGET, units[i], 0)
+							return true
 						end
 					end
 				end
@@ -95,8 +79,9 @@ local UltimatumSelfDefenceAI = {
 		return false
 	end
 }
+UltimatumSelfDefenceAIMT = {__index = UltimatumSelfDefenceAI}
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	for _,Strider in pairs(StriderStack) do
 		Strider:isThreatInRange()
 	end
@@ -105,7 +90,7 @@ end
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Ultimatum_NAME
+	if (unitDefID == Ultimatum_ID
 	and unitTeam==GetMyTeamID()) then
 		StriderStack[unitID] = UltimatumSelfDefenceAI:new(unitID);
 	end
@@ -123,43 +108,24 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weap
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
 
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
 
 function widget:Initialize()
 	DisableForSpec()
-	team_id = Spring.GetMyTeamID()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Ultimatum_NAME) then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Ultimatum_ID) then
 			if  (StriderStack[units[i]]==nil) then
 				StriderStack[units[i]]=UltimatumSelfDefenceAI:new(units[i])
 			end

@@ -18,36 +18,26 @@ local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 
 
-local Ultimatum_NAME = "striderantiheavy"
-local Scorpion_NAME = "striderscorpion"
-local Dante_NAME = "striderdante"
+local Scorpion_ID = UnitDefNames.striderscorpion.id
+local Dante_ID = UnitDefNames.striderdante.id
 
 local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitWeaponState = Spring.GetUnitWeaponState
 local GetUnitIsCloaked = Spring.GetUnitIsCloaked
-local GetUnitStates = Spring.GetUnitStates
 local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local IsUnitSelected = Spring.IsUnitSelected
 local GetTeamUnits = Spring.GetTeamUnits
-local GetTeamResources = Spring.GetTeamResources
-local MarkerAddPoint = Spring.MarkerAddPoint
-local GetCommandQueue = Spring.GetCommandQueue
-local team_id
 local Echo = Spring.Echo
 local CMD_STOP = CMD.STOP
 local CMD_OPT_SHIFT = CMD.OPT_SHIFT
 local CMD_INSERT = CMD.INSERT
-local CMD_MOVE = CMD.MOVE
-local CMD_ATTACK_MOVE_ID = 16
 local CMD_Dgun = 105
 
 local GetSpecState = Spring.GetSpectatingState
 
-
+local ScorpionAndDanteSelfDefenceAIMT
 local ScorpionAndDanteSelfDefenceAI = {
 	unitID,
 	pos,
@@ -57,10 +47,11 @@ local ScorpionAndDanteSelfDefenceAI = {
 	reloadTime,
 	maxHealth,
 
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("ScorpionAndDanteSelfDefenceAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, ScorpionAndDanteSelfDefenceAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -76,28 +67,26 @@ local ScorpionAndDanteSelfDefenceAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	isThreatInRange = function (self)
 		if(GetUnitHealth(self.unitID)<self.maxHealth*0.1)then --is Health Critical?
 			if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then --Health is critical
 				self.pos = {GetUnitPosition(self.unitID)}
-				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 				for i=1, #units do
-					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-						if  (GetUnitIsDead(units[i]) == false) then
-							DefID = GetUnitDefID(units[i])
-							if not(DefID == nil)then
-								if(UnitDefs[DefID].metalCost >= 1500 and UnitDefs[DefID].isAirUnit==false)then
-									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
-									self.cooldownFrame = currentFrame+40
-									return true
-								end
-								enemyposition = {GetUnitPosition(units[i])}
-								if (#GetUnitsInSphere(enemyposition[1],enemyposition[2],enemyposition[3], 180, self.allyTeamID)==0)then	
-									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
-									self.cooldownFrame = currentFrame+40
-									return true
-								end
+					if (GetUnitIsDead(units[i]) == false) then
+						local unitDefID = GetUnitDefID(units[i])
+						if not(unitDefID == nil)then
+							if (UnitDefs[unitDefID].metalCost >= 1500 and UnitDefs[unitDefID].isAirUnit==false) then
+								GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
+								self.cooldownFrame = currentFrame+40
+								return true
+							end
+							local enemyposition = {GetUnitPosition(units[i])}
+							if (#GetUnitsInSphere(enemyposition[1],enemyposition[2],enemyposition[3], 180, self.allyTeamID)==0)then
+								GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
+								self.cooldownFrame = currentFrame+40
+								return true
 							end
 						end
 					end
@@ -106,17 +95,15 @@ local ScorpionAndDanteSelfDefenceAI = {
 		else --Health is not critical
 		if(GetUnitIsCloaked(self.unitID)==false and self.cooldownFrame<currentFrame and GetUnitWeaponState(self.unitID, 3, "reloadState") <= currentFrame)then
 				self.pos = {GetUnitPosition(self.unitID)}
-				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40)
+				local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+40, Spring.ENEMY_UNITS)
 				for i=1, #units do
-					if  not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-						if  (GetUnitIsDead(units[i]) == false) then
-							DefID = GetUnitDefID(units[i])
-							if not(DefID == nil)then
-								if(UnitDefs[DefID].name == Scorpion_NAME or UnitDefs[DefID].name == Ultimatum_NAME)then
-									GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
-									self.cooldownFrame = currentFrame+40
-									return true
-								end
+					if (GetUnitIsDead(units[i]) == false) then
+						local unitDefID = GetUnitDefID(units[i])
+						if not(unitDefID == nil)then
+							if(unitDefID.name == Scorpion_ID or unitDefID == Ultimatum_ID)then
+								GiveOrderToUnit(self.unitID,CMD_INSERT, {0, CMD_Dgun, CMD_OPT_SHIFT, units[i]}, {"alt"})
+								self.cooldownFrame = currentFrame+40
+								return true
 							end
 						end
 					end
@@ -126,8 +113,9 @@ local ScorpionAndDanteSelfDefenceAI = {
 		return false
 	end
 }
+ScorpionAndDanteSelfDefenceAIMT = {__index=ScorpionAndDanteSelfDefenceAI}
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	currentFrame = n
 	for _,Strider in pairs(StriderStack) do
 		Strider:isThreatInRange()
@@ -136,7 +124,7 @@ end
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if ((UnitDefs[unitDefID].name==Scorpion_NAME or  UnitDefs[unitDefID].name==Dante_NAME) and unitTeam==GetMyTeamID()) then
+	if ((unitDefID == Scorpion_ID or unitDefID == Dante_ID) and unitTeam==GetMyTeamID()) then
 		StriderStack[unitID] = ScorpionAndDanteSelfDefenceAI:new(unitID);
 	end
 end
@@ -154,38 +142,20 @@ function widget:UnitDamaged(unitID, unitDefID, unitTeam, damage, paralyzer, weap
 end
 
 
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
-end
-
-
-
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
 
 function widget:Initialize()
 	DisableForSpec()
-	team_id = Spring.GetMyTeamID()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Scorpion_NAME or UnitDefs[DefID].name==Dante_NAME) then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Scorpion_ID or unitDefID == Dante_ID) then
 			if  (StriderStack[units[i]]==nil) then
 				StriderStack[units[i]]=ScorpionAndDanteSelfDefenceAI:new(units[i])
 			end

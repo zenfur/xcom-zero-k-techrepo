@@ -11,7 +11,6 @@ function widget:GetInfo()
 	}
 end
 
-local UPDATE_FRAME=1
 local currentFrame = 0
 local CMD_FORCE_DROP_UNIT = 35000
 local CMD_INSERT = 1
@@ -20,27 +19,23 @@ local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetUnitDefID = Spring.GetUnitDefID
 local GetUnitPosition = Spring.GetUnitPosition
 local GetGroundHeight = Spring.GetGroundHeight
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GetMyTeamID = Spring.GetMyTeamID
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local Echo = Spring.Echo
-local Charon_NAME = "gunshiptrans"
-local Claymore_NAME = "hoverdepthcharge"
-local Hercules_NAME = "gunshipheavytrans"
-local Imp_NAME = "cloakbomb"
-local Scuttle_NAME = "jumpbomb"
-local Snitch_NAME = "shieldbomb"
-local Limpet_NAME = "amphbomb"
+local Charon_ID = UnitDefNames.gunshiptrans.id
+local Claymore_ID = UnitDefNames.hoverdepthcharge.id
+local Hercules_ID = UnitDefNames.gunshipheavytrans.id
+local Imp_ID = UnitDefNames.cloakbomb.id
+local Scuttle_ID = UnitDefNames.jumpbomb.id
+local Snitch_ID = UnitDefNames.shieldbomb.id
+local Limpet_ID = UnitDefNames.amphbomb.id
 local GetSpecState = Spring.GetSpectatingState
 local GetUnitIsTransporting = Spring.GetUnitIsTransporting
 local GetUnitWeaponState = Spring.GetUnitWeaponState
-local CMD_INSERT = CMD.INSERT
 local CMD_LOAD_UNITS = CMD.LOAD_UNITS
 local CMD_UNLOAD_UNITS = CMD.UNLOAD_UNITS
 local CMD_OPT_SHIFT = CMD.OPT_SHIFT
-local CMD_TIMEWAIT = CMD.TIMEWAIT
 local CMD_STOP = CMD.STOP
 local selectedTransports = nil
 local reloaderStack = {}
@@ -51,8 +46,6 @@ local CMD_FIND_PAD = 33411
 local CMD_SET_RELOAD_ZONE = 19894
 local CMD_DROP_CLAYMORE_BOMB = 19893
 local CMD_RELOAD_CLAYMORE = 19892
-local CharonUnitDefID = UnitDefNames["gunshiptrans"].id
-local HerculesUnitDefID = UnitDefNames["gunshipheavytrans"].id
 
 local cmdReloadClaymore = {
 	id      = CMD_RELOAD_CLAYMORE,
@@ -83,15 +76,16 @@ local cmdSetReloadingZone = {
 }
 
 
-
+local reloadControllerMT
 local reloadController = {
 	unitID,
 	targetFrame,
 	pickupTarget,
 
 
-	new = function(self, unitID, target, reload)
-		self = deepcopy(self)
+	new = function(index, unitID, target, reload)
+		local self = {}
+		setmetatable(self,reloadControllerMT)
 		self.unitID = unitID
 		self.targetFrame = currentFrame+50
 		self.pickupTarget = target
@@ -114,19 +108,21 @@ local reloadController = {
 		end
 	end
 }
+reloadControllerMT = {__index=reloadController}
 
+local transportControllerMT
 local transportController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	reloadZone,
 	autoReloadToggle = true,
 	fight = false,
 	fightPos,
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("transportController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, transportControllerMT)
 		self.unitID = unitID
 		self.pos = {GetUnitPosition(self.unitID)}
 		return self
@@ -165,40 +161,38 @@ local transportController = {
 	handle = function(self)
 		if(self.fight)then
 			self.pos = {GetUnitPosition(self.unitID)}
-			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 50)
+			local units = GetUnitsInCylinder(self.pos[1], self.pos[3], 50, Spring.ENEMY_UNITS)
 			for i=1, #units do
-				if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-					DefID = GetUnitDefID(units[i])
-					if not(DefID == nil)then
-						if (UnitDefs[DefID].canFly == false and not( UnitDefs[DefID].name == Claymore_NAME))then
-							transportedUnit = GetUnitIsTransporting(self.unitID)
-							if (transportedUnit[1] == nil) then
-								--Echo("No unit being transported")
-								return
-							end
-							transportedUnitID = transportedUnit[1]
-							DefID = GetUnitDefID(transportedUnitID)
-							if (UnitDefs[DefID].name == Claymore_NAME) then
-								if(self.reloadZone and self.autoReloadToggle)then
-									--Unit is sent to reloadzone--
-									GiveOrderToUnit(self.unitID, CMD_FORCE_DROP_UNIT, {},{""})
-									GiveOrderToUnit(transportedUnitID, CMD_DROP_BOMB, {},0)
-									--Echo("Bomb drop order given to unit:" .. transportedUnitID)
-									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
-									--Echo("Load order given to unit:" .. selectedTransports[i])
+				local unitDefID = GetUnitDefID(units[i])
+				if not(unitDefID == nil)then
+					if (not( unitDefID == Claymore_ID) and UnitDefs[unitDefID].canFly == false)then
+						local transportedUnit = GetUnitIsTransporting(self.unitID)
+						if (transportedUnit[1] == nil) then
+							--Echo("No unit being transported")
+							return
+						end
+						local transportedUnitID = transportedUnit[1]
+						unitDefID = GetUnitDefID(transportedUnitID)
+						if (unitDefID == Claymore_ID) then
+							if(self.reloadZone and self.autoReloadToggle)then
+								--Unit is sent to reloadzone--
+								GiveOrderToUnit(self.unitID, CMD_FORCE_DROP_UNIT, {},{""})
+								GiveOrderToUnit(transportedUnitID, CMD_DROP_BOMB, {},0)
+								--Echo("Bomb drop order given to unit:" .. transportedUnitID)
+								GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
+								--Echo("Load order given to unit:" .. selectedTransports[i])
 
-									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_UNLOAD_UNITS, CMD_OPT_SHIFT, self.reloadZone[1],self.reloadZone[2],self.reloadZone[3]}, {"alt"})
-									local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
-									reloaderStack[self.unitID] = reloadController:new(self.unitID, transportedUnitID, reloadState);
-								else
-									GiveOrderToUnit(self.unitID, CMD_FORCE_DROP_UNIT, {},{""})
-									GiveOrderToUnit(transportedUnitID, CMD_DROP_BOMB, {},0)
-									--Echo("Bomb drop order given to unit:" .. transportedUnitID)
-									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
+								GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_UNLOAD_UNITS, CMD_OPT_SHIFT, self.reloadZone[1],self.reloadZone[2],self.reloadZone[3]}, {"alt"})
+								local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
+								reloaderStack[self.unitID] = reloadController:new(self.unitID, transportedUnitID, reloadState);
+							else
+								GiveOrderToUnit(self.unitID, CMD_FORCE_DROP_UNIT, {},{""})
+								GiveOrderToUnit(transportedUnitID, CMD_DROP_BOMB, {},0)
+								--Echo("Bomb drop order given to unit:" .. transportedUnitID)
+								GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_LOAD_UNITS, CMD_OPT_SHIFT, transportedUnitID}, {"alt"})
 
-									GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.fightPos[1],self.fightPos[2],self.fightPos[3]}, {"alt"})
-									--Echo("Load order given to unit:" .. selectedTransports[i])
-								end
+								GiveOrderToUnit(self.unitID, CMD_INSERT,{0, CMD_ATTACK_MOVE_ID, CMD_OPT_SHIFT, self.fightPos[1],self.fightPos[2],self.fightPos[3]}, {"alt"})
+								--Echo("Load order given to unit:" .. selectedTransports[i])
 							end
 						end
 					end
@@ -207,16 +201,17 @@ local transportController = {
 		end
 	end
 }
+transportControllerMT={__index=transportController}
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
+	if (unitDefID == Charon_ID or unitDefID == Hercules_ID)
 			and (unitTeam==GetMyTeamID()) then
 		TransporterStack[unitID] = transportController:new(unitID);
 	end
 end
 
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if (UnitDefs[unitDefID].name==Charon_NAME or UnitDefs[unitDefID].name==Hercules_NAME)
+	if (unitDefID == Charon_ID or UnitDefs[unitDefID].name == Hercules_ID)
 			and not TransporterStack[unitID] then
 		TransporterStack[unitID] = transportController:new(unitID);
 	end
@@ -239,15 +234,15 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_DROP_CLAYMORE_BOMB)then
 			for i=1, #selectedTransports do
 				repeat
-					transportedUnit = GetUnitIsTransporting(selectedTransports[i])
+					local transportedUnit = GetUnitIsTransporting(selectedTransports[i])
 					if (transportedUnit[1] == nil) then
 						--Echo("No unit being transported")
 						i=i+1
 						break
 					end
-					transportedUnitID = transportedUnit[1]
-					DefID = GetUnitDefID(transportedUnitID)
-					if (UnitDefs[DefID].name == Claymore_NAME or UnitDefs[DefID].name == Limpet_NAME or UnitDefs[DefID].name == Snitch_NAME or UnitDefs[DefID].name == Imp_NAME or UnitDefs[DefID].name == Scuttle_NAME) then
+					local transportedUnitID = transportedUnit[1]
+					local unitDefID = GetUnitDefID(transportedUnitID)
+					if (unitDefID == Claymore_ID or unitDefID == Limpet_ID or unitDefID == Snitch_ID or unitDefID == Imp_ID or unitDefID == Scuttle_ID) then
 						if(TransporterStack[selectedTransports[i]] and TransporterStack[selectedTransports[i]].reloadZone and TransporterStack[selectedTransports[i]].autoReloadToggle)then
 							--Unit is sent to reloadzone--
 							GiveOrderToUnit(selectedTransports[i], CMD_FORCE_DROP_UNIT, {},{""})
@@ -274,21 +269,21 @@ function widget:CommandNotify(cmdID, params, options)
 		if (cmdID == CMD_RELOAD_CLAYMORE)then
 			for i=1, #selectedTransports do
 				repeat
-					transportedUnit = GetUnitIsTransporting(selectedTransports[i])
+					local transportedUnit = GetUnitIsTransporting(selectedTransports[i])
 					if (transportedUnit[1] == nil) then
 						Echo("No unit being transported")
 						i=i+1
 						break
 					end
-					transportedUnitID = transportedUnit[1]
-					DefID = GetUnitDefID(transportedUnitID)
-					if (UnitDefs[DefID].name == Claymore_NAME) then
+					local transportedUnitID = transportedUnit[1]
+					local unitDefID = GetUnitDefID(transportedUnitID)
+					if (unitDefID == Claymore_ID) then
 
 						local reloadState = GetUnitWeaponState(transportedUnitID, 1, "reloadState")
 						if(currentFrame >= reloadState)then
 							break --already loaded
 						else
-							position = {GetUnitPosition(selectedTransports[i])}
+							local position = {GetUnitPosition(selectedTransports[i])}
 							GiveOrderToUnit(selectedTransports[i], CMD_UNLOAD_UNITS, {position[1], GetGroundHeight(position[1], position[3]), position[3], 1},0)
 							reloaderStack[selectedTransports[i]] = reloadController:new(selectedTransports[i], transportedUnitID, reloadState);
 						end
@@ -347,7 +342,7 @@ function filterTransports(units)
 	local n = 0
 	for i = 1, #units do
 		local unitID = units[i]
-		if (CharonUnitDefID == GetUnitDefID(unitID) or HerculesUnitDefID == GetUnitDefID(unitID)) then
+		if (Charon_ID == GetUnitDefID(unitID) or Hercules_ID == GetUnitDefID(unitID)) then
 			n = n + 1
 			filtered[n] = unitID
 		end
@@ -380,25 +375,10 @@ function widget:GameFrame(n)
 	end
 end
 
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
-end
-
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
@@ -408,9 +388,9 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
-		if (UnitDefs[DefID].name==Charon_NAME or UnitDefs[DefID].name==Hercules_NAME) then
+		local unitID = units[i]
+		local unitDefID = GetUnitDefID(unitID)
+		if (unitDefID == Charon_ID or unitDefID == Hercules_ID) then
 			TransporterStack[unitID] = transportController:new(unitID);
 		end
 	end

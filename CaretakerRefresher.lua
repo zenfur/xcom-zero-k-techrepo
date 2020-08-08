@@ -38,27 +38,19 @@ local sqrt = math.sqrt
 local UPDATE_FRAME=options.updateRate.value
 local UnitRegister = {}
 
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitTeam = Spring.GetUnitTeam
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
 local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitTeam = Spring.GetUnitTeam
-local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
-local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
-local IsUnitSelected = Spring.IsUnitSelected
+local GetFeatureDefID = Spring.GetFeatureDefID
+
 local GetFeatureHealth = Spring.GetFeatureHealth
-
-
 --[[
  ( number featureID ) -> nil | number health, number maxHealth, number resurrectProgress
 --]]
@@ -71,11 +63,6 @@ local GetFeaturesInCylinder = Spring.GetFeaturesInCylinder
 --[[ ( number x, number z, number radius )
   -> featureTable = { [1] = number featureID, etc... }
 --]]
-local GetFeatureResources = Spring.GetFeatureResources
---[[
-( number featureID ) -> nil | number RemainingMetal, number maxMetal,
-  number RemainingEnergy, number maxEnergy, number reclaimLeft, number reclaimTime
---]]
 local GetFeaturePosition = Spring.GetFeaturePosition
 --[[
  ( number featureID, [, boolean midPos [, boolean aimPos ] ] ) ->
@@ -86,12 +73,10 @@ local GetFeaturePosition = Spring.GetFeaturePosition
 --]]
 
 local Echo = Spring.Echo
-local target_name = "staticcon"
-local caretakerUnitDefID = UnitDefNames["staticcon"].id
+local Caretaker_ID = UnitDefNames.staticcon.id
 local GetSpecState = Spring.GetSpectatingState
 
 local CMD_STOP = CMD.STOP
-local CMD_ATTACK = CMD.ATTACK
 local CMD_PATROL = CMD.PATROL
 local CMD_RECLAIM = CMD.RECLAIM
 local CMD_REPAIR = CMD.REPAIR
@@ -122,6 +107,22 @@ local JOB_OVERRIDE = 4
 local JOB_GUARD = 5
 local JOB_IDLE = 999
 
+local EMPTY_TABLE = {}
+
+local unreclaimable = {}
+
+-- Keep track of unreclaimable features to avoid repeated FeatureDefs access
+-- There are usually very few kinds of unreclaimable features, typically provided by the map,
+-- so storing the inverted condition makes the table quite a lot smaller.
+for featureDefID,fd in ipairs(FeatureDefs) do
+	if not fd.reclaimable then
+		unreclaimable[featureDefID] = true
+	end
+end
+
+local selectedCaretakers
+
+local CaretakerControllerMT
 local CaretakerController = {
 	unitID,
 	pos,
@@ -134,12 +135,13 @@ local CaretakerController = {
 	jobTargetID,
 	dontManageUntil = 0,
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("CaretakerController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self,CaretakerControllerMT)
 		self.unitID = unitID
-		DefID = GetUnitDefID(unitID)
-		self.range = UnitDefs[DefID].buildDistance - 25
+		local unitDefID = GetUnitDefID(unitID)
+		self.range = UnitDefs[unitDefID].buildDistance - 25
 		self.pos = {GetUnitPosition(self.unitID)}
 		self.jobs = {}
 		self.currentJob = JOB_IDLE
@@ -149,23 +151,19 @@ local CaretakerController = {
 
 	unset = function(self)
 		--Echo("CaretakerController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		GiveOrderToUnit(self.unitID,CMD_STOP, {}, EMPTY_TABLE,1)
 		return nil
-	end,
-
-	setForceTarget = function(self, param)
-		self.forceTarget = param[1]
 	end,
 
 	findJobs = function(self)
 		self.jobTargetID = nil
 		--Echo("Searching jobs...")
-		units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
-		wrecks = GetFeaturesInCylinder(self.pos[1], self.pos[3], self.range)
-		reclaim_job = false
-		sabotage_job = false
-		repair_job = false
-		build_job = false
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range)
+		local wrecks = GetFeaturesInCylinder(self.pos[1], self.pos[3], self.range)
+		local reclaim_job = false
+		local sabotage_job = false
+		local repair_job = false
+		local build_job = false
 
 		-- find ally build jobs in the area
 		-- is nanoframe
@@ -175,16 +173,14 @@ local CaretakerController = {
 		-- is nanoframe
 		-- find ally repair jobs in the area
 
-		max_dist = 0.0
-		total_metal = 0.0
+		local max_dist = 0.0
 		for index, w in ipairs(wrecks) do
 			if w and GetFeatureHealth(w) then
-				metal  = select(1, GetFeatureResources(w))
-				resurrect_progress = select(3, GetFeatureHealth(w))
-				xx, yy, zz = GetFeaturePosition(w)
-				dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
-				if metal > 0 and resurrect_progress == 0 then
-					total_metal = total_metal + metal
+				local featureDefID = GetFeatureDefID(w)
+				local resurrect_progress = select(3, GetFeatureHealth(w))
+				local xx, yy, zz = GetFeaturePosition(w)
+				local dist = (xx-originX)*(xx-originX) + (zz-originZ)*(zz-originZ)
+				if not unreclaimable[featureDefID] and resurrect_progress == 0 then
 					if dist > max_dist then
 						reclaim_job = w
 						max_dist = dist
@@ -194,8 +190,8 @@ local CaretakerController = {
 		end
 
 		for index, unit in ipairs(units) do
-			unitAlliance = GetUnitAllyTeam(unit)
-			hp, mxhp, _, _, bp = GetUnitHealth(unit)
+			local unitAlliance = GetUnitAllyTeam(unit)
+			local hp, mxhp, _, _, bp = GetUnitHealth(unit)
 			-- Echo("Unit alliance " .. unitAlliance .. " " .. self.allyTeamID)
 			if unitAlliance ~= self.allyTeamID then
 				if bp and bp < 1.0 then
@@ -231,62 +227,74 @@ local CaretakerController = {
 	end,
 
 	handle=function(self)
-		Echo(self.currentJob)
-		if (GetUnitStates(self.unitID).movestate > 0) then
-			--[[ manage todo:
-				if guarding check if guard target is in range
-				if repairing check if repair target is in range
+		local unitID = self.unitID
+		if (GetUnitStates(unitID).movestate == 0) then
+			return
+		end
+		--[[ manage todo:
+			if guarding check if guard target is in range
+			if repairing check if repair target is in range
 
 
-			--]]if (self.currentJob == JOB_OVERRIDE and self.jobTargetID)then
-			targetPositionX, targetPositionY, targetPositionZ = GetUnitPosition(self.jobTargetID)
+		--]]
+		if (self.currentJob == JOB_OVERRIDE and self.jobTargetID)then
+			local targetPositionX, targetPositionY, targetPositionZ = GetThingPosition(self.jobTargetID)
 			if(distance(self.pos[1],self.pos[3],targetPositionX,targetPositionZ)>self.range)then
 				self.currentJob = JOB_IDLE
 			end
-		end
 			--Echo("Current job " .. self.currentJob)
-			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(self.unitID)
-				jobs = self:findJobs() -- active job hunting
+			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(unitID)
+				local jobs = self:findJobs() -- active job hunting
 				-- job selection
-				if jobs["sabotage"] then
+				if jobs.sabotage then
 					--Echo("Selecting sabotage job")
-					if self.last_job_id ~= jobs["sabotage"] then
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
+					if self.last_job_id ~= jobs.sabotage then
+						GiveOrderToUnit(unitID, CMD_RECLAIM, {jobs.sabotage}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_SABOTAGE
-						self.last_job_id = jobs["sabotage"]
+						self.last_job_id = jobs.sabotage
 					end
-				elseif jobs["repair"] then
+				elseif jobs.repair then
 					--Echo("Selecting repair job")
-					if self.last_job_id ~= jobs["repair"] then
-						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
+					if self.last_job_id ~= jobs.repair then
+						GiveOrderToUnit(unitID, CMD_REPAIR, {jobs.repair}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_REPAIR
-						self.last_job_id = jobs["repair"]
+						self.last_job_id = jobs.repair
 					end
-				elseif jobs["reclaim"] then
+				elseif jobs.reclaim then
 					--Echo("Selecting reclaim job")
-					if self.last_job_id ~= jobs["reclaim"] then
+					if self.last_job_id ~= jobs.reclaim then
 						--Echo("Last reclaim job id: " .. self.last_job_id)
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {Game.maxUnits + jobs["reclaim"]}, {""}, 1)--{self.pos[1], self.pos[2], self.pos[3], self.range}, {""}, 1)
+						GiveOrderToUnit(unitID, CMD_RECLAIM, {Game.maxUnits + jobs.reclaim}, EMPTY_TABLE, 1)--{self.pos[1], self.pos[2], self.pos[3], self.range}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_RECLAIM
-						self.last_job_id = jobs["reclaim"]
+						self.last_job_id = jobs.reclaim
 					end
-				elseif jobs["build"] then
+				elseif jobs.build then
 					--Echo("Selecting build job")
-					if self.last_job_id ~= jobs["build"] then
-						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
+					if self.last_job_id ~= jobs.build then
+						GiveOrderToUnit(unitID, CMD_REPAIR, {jobs.build}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_BUILD
-						self.last_job_id = jobs["build"]
+						self.last_job_id = jobs.build
 					end
 				end
 			end
 		end
 	end
 }
+CaretakerControllerMT = {__index=CaretakerController}
 
 function distance ( x1, y1, x2, y2 )
 	local dx = (x1 - x2)
 	local dy = (y1 - y2)
 	return sqrt ( dx * dx + dy * dy )
+end
+
+local maxUnits = Game.maxUnits
+function GetThingPosition(thingID)
+	if thingID < maxUnits then
+		return GetUnitPosition(thingID)
+	else
+		return GetFeaturePosition(thingID - maxUnits)
+	end
 end
 
 function widget:CommandNotify(cmdID, params, options)
@@ -298,13 +306,14 @@ function widget:CommandNotify(cmdID, params, options)
 			end
 		else
 			for i=1, #selectedCaretakers do
-				UnitRegister[selectedCaretakers[i]].currentJob = JOB_OVERRIDE
+				local unitID = selectedCaretakers[i]
+				UnitRegister[unitID].currentJob = JOB_OVERRIDE
 				if #params==1 then
-					UnitRegister[selectedCaretakers[i]].jobTargetID = params[1]
+					UnitRegister[unitID].jobTargetID = params[1]
 				else
-					UnitRegister[selectedCaretakers[i]].jobTargetID = nil
+					UnitRegister[unitID].jobTargetID = nil
 				end
-				UnitRegister[selectedCaretakers[i]].last_job_id = -1
+				UnitRegister[unitID].last_job_id = -1
 			end
 		end
 	end
@@ -319,7 +328,7 @@ function filterCaretakers(units)
 	local n = 0
 	for i = 1, #units do
 		local unitID = units[i]
-		if (caretakerUnitDefID == GetUnitDefID(unitID)) then
+		if (Caretaker_ID == GetUnitDefID(unitID)) then
 			n = n + 1
 			filtered[n] = unitID
 		end
@@ -344,29 +353,30 @@ end
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
 	if (string.match(UnitDefs[unitDefID].name, "dyn"))
 			and (unitTeam==GetMyTeamID()) then
-		originX, _, originZ = GetUnitPosition(unitID)
-		Echo("Commander found, initializing X, Y, Z as " .. originX .. " " .. _ .. " " .. originZ)
+		local y
+		originX, y, originZ = GetUnitPosition(unitID)
+		Echo("Commander found, initializing X, Y, Z as " .. originX .. " " .. y .. " " .. originZ)
 	end
 end
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==target_name)
+	if (unitDefID==Caretaker_ID)
 			and (unitTeam==GetMyTeamID()) then
-		UnitRegister[unitID] = CaretakerController:new(unitID);
+		UnitRegister[unitID] = CaretakerController:new(unitID)
 	end
 end
 
 -- removing transferred units
 function widget:UnitTaken(unitID, unitDefID, unitTeam, newTeam)
-	if not (UnitRegister[unitID]==nil) and unitID == GetMyTeamID() then
-		UnitRegister[unitID]=UnitRegister[unitID]:unset();
+	if UnitRegister[unitID] then
+		UnitRegister[unitID]=UnitRegister[unitID]:unset()
 	end
 end
 
 -- accepting transferred units - add them to register
 function widget:UnitGiven(unitID, unitDefID, newTeam, unitTeam)
-	if (UnitDefs[unitDefID].name==target_name)
-			and (unitTeam==GetMyTeamID()) then
+	if unitDefID == Caretaker_ID
+			and (newTeam==GetMyTeamID()) then
 		UnitRegister[unitID] = CaretakerController:new(unitID);
 	end
 end
@@ -393,28 +403,13 @@ function widget:Initialize()
 
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==target_name)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Caretaker_ID) then
 			if  (UnitRegister[units[i]]==nil) then
 				UnitRegister[units[i]]=CaretakerController:new(units[i])
 			end
 		end
 	end
-end
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 -- The rest of the code is there to disable the widget for spectators

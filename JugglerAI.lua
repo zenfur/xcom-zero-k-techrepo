@@ -29,7 +29,7 @@ local target = Spring.SetUnitTarget
 local GetUnitArmored = Spring.GetUnitArmored
 local GetTeamUnits = Spring.GetTeamUnits
 local GetUnitHealth = Spring.GetUnitHealth
-local GetUnitWeaponTarget  = Spring.GetUnitWeaponTarget 
+local GetUnitWeaponTarget  = Spring.GetUnitWeaponTarget
 local ENEMY_DETECT_BUFFER  = 60
 local Echo = Spring.Echo
 local Jugglenaut_NAME = "jumpsumo"
@@ -63,11 +63,12 @@ local cmdToggle = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Makes Jugglenaut switch between push and pull automatically when enemy is near',
 	action  = 'reclaim',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/states/ai_on.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
+local JuggleAIMT
 local JuggleAI = {
 	unitID,
 	allyTeamID = GetMyAllyTeamID(),
@@ -75,10 +76,11 @@ local JuggleAI = {
 	maxHealth,
 	toggle = true,
 	checkpoint = -1,
-	
-	new = function(self, unitID)
+
+	new = function(index, unitID)
 		--Echo("JuggleAI added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, JuggleAIMT)
 		self.unitID = unitID
 		self.range = GetUnitMaxRange(self.unitID)
 		self.maxHealth = UnitDefs[GetUnitDefID(self.unitID)].health
@@ -90,16 +92,16 @@ local JuggleAI = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		self.toggle = true
 		Echo("JuggleAI toggled On")
 	end,
-	
+
 	toggleOff = function (self)
 		self.toggle = false
 		Echo("JuggleAI toggled Off")
@@ -304,6 +306,7 @@ local JuggleAI = {
 		end
 	end
 }
+JuggleAIMT = {__index = JuggleAI }
 
 local function GetDragAccelerationVec(vx, vy, vz, mass, radius)
 
@@ -331,7 +334,7 @@ function WillHitMe(unitID, unitRadius, targetID, targetMass, targetRadius, frame
 	end
 	local _, _, _, umx, umy, umz  = GetUnitPosition(unitID, true) --mid pos
 	local tx, ty, tz, tmx, tmy, tmz  = GetUnitPosition(targetID, true) --mid pos
-	
+
 	if (tmx==nil)then
 		return false
 	end
@@ -377,28 +380,12 @@ function widget:UnitDestroyed(unitID)
 	end
 end
 
-function widget:GameFrame(n) 
+function widget:GameFrame(n)
 	if (n%UPDATE_FRAME==0) then
 		for _,juggle in pairs(JuggleStack) do
 			juggle:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
 end
 
 --- COMMAND HANDLING
@@ -457,7 +444,7 @@ end
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 

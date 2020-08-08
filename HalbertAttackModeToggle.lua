@@ -11,39 +11,18 @@ function widget:GetInfo()
   }
 end
 
-local pi = math.pi
-local sin = math.sin
-local cos = math.cos
-local atan = math.atan
-local ceil = math.ceil
-local UPDATE_FRAME=30
 local HalbertStack = {}
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
-local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetTeamUnits = Spring.GetTeamUnits
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
-local GetUnitHealth = Spring.GetUnitHealth
 local GetUnitStates = Spring.GetUnitStates
 local Echo = Spring.Echo
-local Halbert_NAME = "hoverassault"
+local Halbert_ID = UnitDefNames.hoverassault.id
 local GetSpecState = Spring.GetSpectatingState
-local FULL_CIRCLE_RADIANT = 2 * pi
-local CMD_UNIT_SET_TARGET = 34923
-local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_OPT_SHIFT = CMD.OPT_SHIFT
-local CMD_INSERT = CMD.INSERT
-local CMD_ATTACK = CMD.ATTACK
-local CMD_MOVE = CMD.MOVE
-local CMD_REMOVE = CMD.REMOVE
 local CMD_FIRE_STATE = CMD.FIRE_STATE
 
 
@@ -57,22 +36,24 @@ local cmdAttackModeToggle = {
 	type    = CMDTYPE.ICON,
 	tooltip = 'Hotkey to change Halbert fire state.',
 	action  = 'oneclickwep',
-	params  = { }, 
+	params  = { },
 	texture = 'LuaUI/Images/commands/Bold/dgun.png',
-	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},  
+	pos     = {CMD_ONOFF,CMD_REPEAT,CMD_MOVE_STATE,CMD_FIRE_STATE, CMD_RETREAT},
 }
 
 
+local AttackModeControllerMT
 local AttackModeController = {
 	unitID,
 	allyTeamID = GetMyAllyTeamID(),
 	toggle = false,
 
-	
-	
-	new = function(self, unitID)
+
+
+	new = function(index, unitID)
 		--Echo("AttackModeController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, AttackModeControllerMT)
 		self.unitID = unitID
 		local unitStates = GetUnitStates(self.unitID)
 		if (unitStates.firestate == 2)then
@@ -88,23 +69,23 @@ local AttackModeController = {
 		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
 		return nil
 	end,
-	
+
 	getToggleState = function(self)
 		return self.toggle
 	end,
-	
+
 	toggleOn = function (self)
 		Echo("Halbert attack mode fire at will!")
 		GiveOrderToUnit(self.unitID,CMD_FIRE_STATE, 2, 0)
 		self.toggle = true
 	end,
-	
+
 	toggleOff = function (self)
 		Echo("Halbert attack mode hold fire")
 		GiveOrderToUnit(self.unitID,CMD_FIRE_STATE, 0, 0)
 		self.toggle = false
 	end,
-	
+
 	handle=function(self)
 		if (self.toggle) then
 			self.pos = {GetUnitPosition(self.unitID)}
@@ -115,34 +96,20 @@ local AttackModeController = {
 		end
 	end
 }
+AttackModeControllerMT = {__index=AttackModeController}
 
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-		if (UnitDefs[unitDefID].name==Halbert_NAME)
+		if (unitDefID == Halbert_ID)
 		and (unitTeam==GetMyTeamID()) then
 			HalbertStack[unitID] = AttackModeController:new(unitID);
 		end
 end
 
-function widget:UnitDestroyed(unitID) 
+function widget:UnitDestroyed(unitID)
 	if not (HalbertStack[unitID]==nil) then
 		HalbertStack[unitID]=HalbertStack[unitID]:unset();
 	end
-end
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else
-        copy = orig
-    end
-    return copy
 end
 
 --- COMMAND HANDLING
@@ -204,7 +171,7 @@ end
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
@@ -213,9 +180,9 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(GetMyTeamID())
 	for i=1, #units do
-		unitID = units[i]
-		DefID = GetUnitDefID(unitID)
-		if (UnitDefs[DefID].name==Halbert_NAME)  then
+		local unitID = units[i]
+		local unitDefID = GetUnitDefID(unitID)
+		if (unitDefID == Halbert_ID)  then
 			if  (HalbertStack[unitID]==nil) then
 				HalbertStack[unitID]=AttackModeController:new(unitID)
 			end

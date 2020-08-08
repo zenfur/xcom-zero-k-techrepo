@@ -19,8 +19,6 @@ local GiveOrderToUnit = Spring.GiveOrderToUnit
 local GetGroundHeight = Spring.GetGroundHeight
 local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
-local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
@@ -30,16 +28,14 @@ local GetUnitStates = Spring.GetUnitStates
 local GetUnitRulesParam = Spring.GetUnitRulesParam
 local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
 local Echo = Spring.Echo
-local Bloas_NAME = "hoverheavyraid"
+local Bolas_ID = UnitDefNames.hoverheavyraid.id
 local ENEMY_DETECT_BUFFER  = 40
 local GetSpecState = Spring.GetSpectatingState
 local pi = math.pi
-local FULL_CIRCLE_RADIANT = 2 * pi
 local HEADING_TO_RAD = (pi*2/65536 )
 local CMD_UNIT_SET_TARGET = 34923
 local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
-local CMD_MOVE = CMD.MOVE
 local selectedSweepers = nil
 local atan = math.atan
 local sin = math.sin
@@ -61,10 +57,10 @@ local cmdSweep = {
 }
 
 
+local SweeperControllerMT
 local SweeperController = {
 	unitID,
 	pos,
-	allyTeamID = GetMyAllyTeamID(),
 	range,
 	rotation = 0,
 	toggle = false,
@@ -74,9 +70,10 @@ local SweeperController = {
 
 
 
-	new = function(self, unitID)
+	new = function(index, unitID)
 		--Echo("SweeperController added:" .. unitID)
-		self = deepcopy(self)
+		local self = {}
+		setmetatable(self, SweeperControllerMT)
 		self.unitID = unitID
 		self.range = (GetUnitMaxRange(self.unitID)-15)
 		self.pos = {GetUnitPosition(self.unitID)}
@@ -96,7 +93,7 @@ local SweeperController = {
 
 	isEnemyInRange = function (self)
 		local enemyUnitID = GetUnitNearestEnemy(self.unitID, self.range+ENEMY_DETECT_BUFFER, false)
-		if  (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
+		if (enemyUnitID and GetUnitIsDead(enemyUnitID) == false) then
 			if (self.enemyNear == false)then
 				GiveOrderToUnit(self.unitID,CMD_UNIT_CANCEL_TARGET, 0, 0)
 				self.enemyNear = true
@@ -143,25 +140,23 @@ local SweeperController = {
 
 
 	isEnemyInRange2 = function (self)
-		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+22)
+		local units = GetUnitsInCylinder(self.pos[1], self.pos[3], self.range+22, Spring.ENEMY_UNITS)
 		local target = nil
 		for i=1, #units do
-			if not (GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				enemyPosition = {GetUnitPosition(units[i])}
-				if(enemyPosition[2]>-30)then
+			local enemyPosition = {GetUnitPosition(units[i])}
+			if(enemyPosition[2]>-30)then
 
-					DefID = GetUnitDefID(units[i])
-					if not(DefID == nil)then
+				local unitDefID = GetUnitDefID(units[i])
+				if not(unitDefID == nil)then
 
-						if  (GetUnitIsDead(units[i]) == false)then
-							if (GetUnitRulesParam(units[i],"slowState")==nil)then
-								if(UnitDefs[DefID].metalCost < 140)then
-									target = units[i]
-								end
-							else
-								if(UnitDefs[DefID].health < 480  and GetUnitRulesParam(units[i],"slowState") < 0.4)then
-									target = units[i]
-								end
+					if  (GetUnitIsDead(units[i]) == false)then
+						if (GetUnitRulesParam(units[i],"slowState")==nil)then
+							if(UnitDefs[unitDefID].metalCost < 140)then
+								target = units[i]
+							end
+						else
+							if(UnitDefs[unitDefID].health < 480  and GetUnitRulesParam(units[i],"slowState") < 0.4)then
+								target = units[i]
 							end
 						end
 					end
@@ -178,39 +173,36 @@ local SweeperController = {
 	end,
 
 	isShieldInEffectiveRange = function (self)
-		closestShieldID = nil
-		closestShieldDistance = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320)
+		local closestShieldID, closestShieldDistance, closestShieldRadius, rotation
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
 		for i=1, #units do
-			if not(GetUnitAllyTeam(units[i]) == self.allyTeamID) then
-				DefID = GetUnitDefID(units[i])
-				if not(DefID == nil)then
-					if (GetUnitIsDead(units[i]) == false and UnitDefs[DefID].hasShield == true) then
-						local shieldHealth = {GetUnitShieldState(units[i])}
-						if (shieldHealth[2] and self.damage <= shieldHealth[2])then
-							local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
+			local unitDefID = GetUnitDefID(units[i])
+			if not(unitDefID == nil)then
+				if (GetUnitIsDead(units[i]) == false and UnitDefs[unitDefID].hasShield == true) then
+					local shieldHealth = {GetUnitShieldState(units[i])}
+					if (shieldHealth[2] and self.damage <= shieldHealth[2])then
+						local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(units[i])
 
-							local targetShieldRadius
-							if (UnitDefs[DefID].weapons[2] == nil)then
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[1].weaponDef].shieldRadius
-							else
-								targetShieldRadius = WeaponDefs[UnitDefs[DefID].weapons[2].weaponDef].shieldRadius
-							end
+						local targetShieldRadius
+						if (UnitDefs[unitDefID].weapons[2] == nil)then
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[1].weaponDef].shieldRadius
+						else
+							targetShieldRadius = WeaponDefs[UnitDefs[unitDefID].weapons[2].weaponDef].shieldRadius
+						end
 
-							enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
-							if not(closestShieldDistance)then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						local enemyShieldDistance = distance(self.pos[1], enemyPositionX, self.pos[3], enemyPositionZ)-targetShieldRadius
+						if not(closestShieldDistance)then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
+						end
 
-							if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
-								closestShieldDistance = enemyShieldDistance
-								closestShieldID = units[i]
-								closestShieldRadius = targetShieldRadius
-								rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
-							end
+						if (enemyShieldDistance < closestShieldDistance and enemyShieldDistance > 20) then
+							closestShieldDistance = enemyShieldDistance
+							closestShieldID = units[i]
+							closestShieldRadius = targetShieldRadius
+							rotation = atan((self.pos[1]-enemyPositionX)/(self.pos[3]-enemyPositionZ))
 						end
 					end
 				end
@@ -224,7 +216,7 @@ local SweeperController = {
 				cos(rotation) * (closestShieldRadius-14),
 			}
 
-			local targetPosAbsolute = {}
+			local targetPosAbsolute
 			if (self.pos[3]<=enemyPositionZ) then
 				targetPosAbsolute = {
 					enemyPositionX-targetPosRelative[1],
@@ -263,6 +255,7 @@ local SweeperController = {
 		end
 	end
 }
+SweeperControllerMT = {__index = SweeperController}
 
 function distance ( x1, y1, x2, y2 )
 	local dx = (x1 - x2)
@@ -271,7 +264,7 @@ function distance ( x1, y1, x2, y2 )
 end
 
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-	if (UnitDefs[unitDefID].name==Bloas_NAME)
+	if (unitDefID == Bolas_ID)
 			and (unitTeam==GetMyTeamID()) then
 		SweeperStack[unitID] = SweeperController:new(unitID);
 	end
@@ -289,22 +282,6 @@ function widget:GameFrame(n)
 			sweeper:handle()
 		end
 	end
-end
-
-
-function deepcopy(orig)
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		copy = {}
-		for orig_key, orig_value in next, orig, nil do
-			copy[deepcopy(orig_key)] = deepcopy(orig_value)
-		end
-		setmetatable(copy, deepcopy(getmetatable(orig)))
-	else
-		copy = orig
-	end
-	return copy
 end
 
 
@@ -365,7 +342,7 @@ end
 -- The rest of the code is there to disable the widget for spectators
 local function DisableForSpec()
 	if GetSpecState() then
-		widgetHandler:RemoveWidget()
+		widgetHandler:RemoveWidget(widget)
 	end
 end
 
@@ -374,8 +351,8 @@ function widget:Initialize()
 	DisableForSpec()
 	local units = GetTeamUnits(Spring.GetMyTeamID())
 	for i=1, #units do
-		DefID = GetUnitDefID(units[i])
-		if (UnitDefs[DefID].name==Bloas_NAME)  then
+		local unitDefID = GetUnitDefID(units[i])
+		if (unitDefID == Bolas_ID)  then
 			if  (SweeperStack[units[i]]==nil) then
 				SweeperStack[units[i]]=SweeperController:new(units[i])
 			end
