@@ -38,26 +38,17 @@ local sqrt = math.sqrt
 local UPDATE_FRAME=options.updateRate.value
 local UnitRegister = {}
 
-local GetUnitMaxRange = Spring.GetUnitMaxRange
 local GetUnitPosition = Spring.GetUnitPosition
 local GetMyAllyTeamID = Spring.GetMyAllyTeamID
-local GetUnitTeam = Spring.GetUnitTeam
 local GiveOrderToUnit = Spring.GiveOrderToUnit
-local GetGroundHeight = Spring.GetGroundHeight
-local GetUnitsInSphere = Spring.GetUnitsInSphere
 local GetUnitsInCylinder = Spring.GetUnitsInCylinder
 local GetUnitAllyTeam = Spring.GetUnitAllyTeam
 local GetUnitTeam = Spring.GetUnitTeam
-local GetUnitNearestEnemy = Spring.GetUnitNearestEnemy
-local GetUnitIsDead = Spring.GetUnitIsDead
 local GetMyTeamID = Spring.GetMyTeamID
 local GetUnitDefID = Spring.GetUnitDefID
 local GetTeamUnits = Spring.GetTeamUnits
-local GetUnitArmored = Spring.GetUnitArmored
 local GetUnitStates = Spring.GetUnitStates
-local IsUnitSelected = Spring.IsUnitSelected
 local GetFeatureHealth = Spring.GetFeatureHealth
-
 
 --[[
  ( number featureID ) -> nil | number health, number maxHealth, number resurrectProgress
@@ -87,11 +78,10 @@ local GetFeaturePosition = Spring.GetFeaturePosition
 
 local Echo = Spring.Echo
 local target_name = "staticcon"
-local caretakerUnitDefID = UnitDefNames["staticcon"].id
+local caretakerUnitDefID = UnitDefNames.staticcon.id
 local GetSpecState = Spring.GetSpectatingState
 
 local CMD_STOP = CMD.STOP
-local CMD_ATTACK = CMD.ATTACK
 local CMD_PATROL = CMD.PATROL
 local CMD_RECLAIM = CMD.RECLAIM
 local CMD_REPAIR = CMD.REPAIR
@@ -121,6 +111,8 @@ local JOB_BUILD = 3
 local JOB_OVERRIDE = 4
 local JOB_GUARD = 5
 local JOB_IDLE = 999
+
+local EMPTY_TABLE = {}
 
 local selectedCaretakers
 
@@ -153,12 +145,8 @@ local CaretakerController = {
 
 	unset = function(self)
 		--Echo("CaretakerController removed:" .. self.unitID)
-		GiveOrderToUnit(self.unitID,CMD_STOP, {}, {""},1)
+		GiveOrderToUnit(self.unitID,CMD_STOP, {}, EMPTY_TABLE,1)
 		return nil
-	end,
-
-	setForceTarget = function(self, param)
-		self.forceTarget = param[1]
 	end,
 
 	findJobs = function(self)
@@ -235,7 +223,8 @@ local CaretakerController = {
 	end,
 
 	handle=function(self)
-		if (GetUnitStates(self.unitID).movestate == 0) then
+		local unitID = self.unitID
+		if (GetUnitStates(unitID).movestate == 0) then
 			return
 		end
 		--[[ manage todo:
@@ -250,37 +239,37 @@ local CaretakerController = {
 				self.currentJob = JOB_IDLE
 			end
 			--Echo("Current job " .. self.currentJob)
-			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(self.unitID)
+			if self.currentJob ~= JOB_OVERRIDE then -- and not IsUnitSelected(unitID)
 				local jobs = self:findJobs() -- active job hunting
 				-- job selection
-				if jobs["sabotage"] then
+				if jobs.sabotage then
 					--Echo("Selecting sabotage job")
-					if self.last_job_id ~= jobs["sabotage"] then
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {jobs["sabotage"]}, {""}, 1)
+					if self.last_job_id ~= jobs.sabotage then
+						GiveOrderToUnit(unitID, CMD_RECLAIM, {jobs.sabotage}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_SABOTAGE
-						self.last_job_id = jobs["sabotage"]
+						self.last_job_id = jobs.sabotage
 					end
-				elseif jobs["repair"] then
+				elseif jobs.repair then
 					--Echo("Selecting repair job")
-					if self.last_job_id ~= jobs["repair"] then
-						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["repair"]}, {""}, 1)
+					if self.last_job_id ~= jobs.repair then
+						GiveOrderToUnit(unitID, CMD_REPAIR, {jobs.repair}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_REPAIR
-						self.last_job_id = jobs["repair"]
+						self.last_job_id = jobs.repair
 					end
-				elseif jobs["reclaim"] then
+				elseif jobs.reclaim then
 					--Echo("Selecting reclaim job")
-					if self.last_job_id ~= jobs["reclaim"] then
+					if self.last_job_id ~= jobs.reclaim then
 						--Echo("Last reclaim job id: " .. self.last_job_id)
-						GiveOrderToUnit(self.unitID, CMD_RECLAIM, {Game.maxUnits + jobs["reclaim"]}, {""}, 1)--{self.pos[1], self.pos[2], self.pos[3], self.range}, {""}, 1)
+						GiveOrderToUnit(unitID, CMD_RECLAIM, {Game.maxUnits + jobs.reclaim}, EMPTY_TABLE, 1)--{self.pos[1], self.pos[2], self.pos[3], self.range}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_RECLAIM
-						self.last_job_id = jobs["reclaim"]
+						self.last_job_id = jobs.reclaim
 					end
-				elseif jobs["build"] then
+				elseif jobs.build then
 					--Echo("Selecting build job")
-					if self.last_job_id ~= jobs["build"] then
-						GiveOrderToUnit(self.unitID, CMD_REPAIR, {jobs["build"]}, {""}, 1)
+					if self.last_job_id ~= jobs.build then
+						GiveOrderToUnit(unitID, CMD_REPAIR, {jobs.build}, EMPTY_TABLE, 1)
 						self.currentJob = JOB_BUILD
-						self.last_job_id = jobs["build"]
+						self.last_job_id = jobs.build
 					end
 				end
 			end
@@ -304,13 +293,14 @@ function widget:CommandNotify(cmdID, params, options)
 			end
 		else
 			for i=1, #selectedCaretakers do
-				UnitRegister[selectedCaretakers[i]].currentJob = JOB_OVERRIDE
+				local unitID = selectedCaretakers[i]
+				UnitRegister[unitID].currentJob = JOB_OVERRIDE
 				if #params==1 then
-					UnitRegister[selectedCaretakers[i]].jobTargetID = params[1]
+					UnitRegister[unitID].jobTargetID = params[1]
 				else
-					UnitRegister[selectedCaretakers[i]].jobTargetID = nil
+					UnitRegister[unitID].jobTargetID = nil
 				end
-				UnitRegister[selectedCaretakers[i]].last_job_id = -1
+				UnitRegister[unitID].last_job_id = -1
 			end
 		end
 	end
