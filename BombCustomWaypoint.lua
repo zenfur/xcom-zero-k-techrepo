@@ -83,7 +83,7 @@ FactoryWaypointControllerMT = {__index=FactoryWaypointController}
 
 function widget:UnitCreated(unitID, unitDefID, unitTeam, builderID)
 	if not(FactoryStack[builderID]==nil) and FactoryStack[builderID].targetParams~=nil and (unitTeam==GetMyTeamID())then
-		if (unitDefID == Scuttle_ID or unitDefID == Snitch_ID or unitDefID.id == Limpet_ID or unitDefID.id == Imp_ID or unitDefID == Blastwing_ID)then
+		if (unitDefID == Scuttle_ID or unitDefID == Snitch_ID or unitDefID == Limpet_ID or unitDefID == Imp_ID or unitDefID == Blastwing_ID)then
 			GiveOrderToUnit(unitID, CMD_RAW_MOVE, {FactoryStack[builderID].targetParams[1], FactoryStack[builderID].targetParams[2], FactoryStack[builderID].targetParams[3]},0)
 		end
 	end

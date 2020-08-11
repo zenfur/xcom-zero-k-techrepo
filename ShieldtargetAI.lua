@@ -73,7 +73,6 @@ local CMD_UNIT_SET_TARGET_CIRCLE = 34925
 local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
 
-
 local ShieldTargettingController = {
 	enemyNear = false,
 	extra_range = 22,
