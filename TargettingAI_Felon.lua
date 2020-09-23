@@ -48,6 +48,7 @@ local CMD_UNIT_CANCEL_TARGET = 34924
 local CMD_STOP = CMD.STOP
 local CMD_ATTACK = CMD.ATTACK
 local CMD_REMOVE = CMD.REMOVE
+local FELON_MIN_SHIELD = UnitDefs[Felon_ID].customParams.shield_power * 0.9
 
 
 
@@ -99,7 +100,8 @@ local FelonController = {
 				local unitDefID = GetUnitDefID(unitID)
 				if not((unitDefID == nil) or GetUnitIsDead(unitID)) then
 					local hasArmor = GetUnitArmored(unitID)
-					if not(unitDefID == Solar_ID
+					if select(2, GetUnitShieldState(self.unitID)) > FELON_MIN_SHIELD
+						or not(unitDefID == Solar_ID
 						or unitDefID == Dirtbag_ID
 						or unitDefID == Minotaur_ID
 						or unitDefID == Cyclops_ID
