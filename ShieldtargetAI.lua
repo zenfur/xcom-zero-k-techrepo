@@ -124,7 +124,7 @@ local ShieldTargettingController = {
 		local closestShieldDistance = nil
 		local closestShieldRadius = nil
 		local rotation = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+520, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			local unitDefID = GetUnitDefID(units[i])
 			if not(unitDefID == nil)then
