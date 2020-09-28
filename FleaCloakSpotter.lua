@@ -15,7 +15,7 @@ local CloakerStack = {}
 local GetUnitPosition = Spring.GetUnitPosition
 local GiveOrderToUnit = Spring.GiveOrderToUnit
 
-local Flea_ID = "spiderscout"
+local Flea_ID = UnitDefNames.spiderscout.id
 
 local GetUnitWeaponState = Spring.GetUnitWeaponState
 local GetUnitsInSphere = Spring.GetUnitsInSphere

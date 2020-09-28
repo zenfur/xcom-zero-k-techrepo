@@ -63,6 +63,7 @@ local Scalpel_ID = UnitDefNames.hoverskirm.id
 local Stinger_ID = UnitDefNames.turretheavylaser.id
 local Locust_ID = UnitDefNames.gunshipraid.id
 local Revenant_ID = UnitDefNames.gunshipassault.id
+local FELON_MIN_SHIELD = UnitDefs[Felon_ID].customParams.shield_power * 0.9
 local ENEMY_DETECT_BUFFER  = 35
 local Echo = Spring.Echo
 local GetSpecState = Spring.GetSpectatingState
@@ -84,6 +85,7 @@ local ShieldTargettingController = {
 			self.range = GetUnitMaxRange(self.unitID)
 			self.pos = {GetUnitPosition(self.unitID)}
 			self.drec = false
+			self.isFelon = (GetUnitDefID(self.unitID) == Felon_ID)
 			local unitDefID = GetUnitDefID(self.unitID)
 			local weaponDefID = UnitDefs[unitDefID].weapons[1].weaponDef
 			local wd = WeaponDefs[weaponDefID]
@@ -124,7 +126,7 @@ local ShieldTargettingController = {
 		local closestShieldDistance = nil
 		local closestShieldRadius = nil
 		local rotation = nil
-		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+320, Spring.ENEMY_UNITS)
+		local units = GetUnitsInSphere(self.pos[1], self.pos[2], self.pos[3], self.range+520, Spring.ENEMY_UNITS)
 		for i=1, #units do
 			local unitDefID = GetUnitDefID(units[i])
 			if not(unitDefID == nil)then
@@ -158,7 +160,7 @@ local ShieldTargettingController = {
 				end
 			end
 		end
-		if(closestShieldID ~= nil)then
+		if(closestShieldID ~= nil and (not self.isFelon or select(2, GetUnitShieldState(self.unitID)) > FELON_MIN_SHIELD ))then
 			local enemyPositionX, enemyPositionY, enemyPositionZ = GetUnitPosition(closestShieldID)
 			local targetPosRelative={
 				sin(rotation) * (closestShieldRadius-14),
@@ -245,33 +247,23 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
 				or unitDefID == Phoenix_ID
 				or unitDefID == Raven_ID
 				or unitDefID == Ogre_ID
-				or unitDefID == Reaver_ID
-				or unitDefID == Kodachi_ID
 				or unitDefID == Moderator_ID
 				or unitDefID == Dominatrix_ID
-				or unitDefID == Venom_ID
-				or unitDefID == Bandit_ID
-				or unitDefID == Scorcher_ID
-				or unitDefID == Redback_ID
 				or unitDefID == Pyro_ID
 				or unitDefID == Nimbus_ID
-				or unitDefID == Mace_ID
 				or unitDefID == Widow_ID
 				or unitDefID == Scorpion_ID
-				or unitDefID == Dante_ID
 				or unitDefID == Ultimatum_ID
 				or unitDefID == Halbert_ID
 				or unitDefID == Puppy_ID
 				or unitDefID == Lobster_ID
 				or unitDefID == Jugglenaut_ID
 				or unitDefID == Recluse_ID
-				or unitDefID == Felon_ID
 				or unitDefID == Dirtbag_ID
 				or unitDefID == Scalpel_ID
 				or string.match(UnitDefs[unitDefID].name, "dyn")
 				or unitDefID == Locust_ID
-				or unitDefID == Revenant_ID
-				or unitDefID == Ripper_ID)) then
+				or unitDefID == Revenant_ID)) then
 			UnitStack[unitID] = ShieldTargettingController:new(unitID);
 		end
 	else
@@ -347,33 +339,23 @@ function widget:Initialize()
 					or unitDefID == Phoenix_ID
 					or unitDefID == Raven_ID
 					or unitDefID == Ogre_ID
-					or unitDefID == Reaver_ID
-					or unitDefID == Kodachi_ID
 					or unitDefID == Moderator_ID
 					or unitDefID == Dominatrix_ID
-					or unitDefID == Venom_ID
-					or unitDefID == Bandit_ID
-					or unitDefID == Scorcher_ID
-					or unitDefID == Redback_ID
 					or unitDefID == Pyro_ID
 					or unitDefID == Nimbus_ID
-					or unitDefID == Mace_ID
 					or unitDefID == Widow_ID
 					or unitDefID == Scorpion_ID
-					or unitDefID == Dante_ID
 					or unitDefID == Ultimatum_ID
 					or unitDefID == Halbert_ID
 					or unitDefID == Puppy_ID
 					or unitDefID == Lobster_ID
 					or unitDefID == Jugglenaut_ID
 					or unitDefID == Recluse_ID
-					or unitDefID == Felon_ID
 					or unitDefID == Dirtbag_ID
 					or unitDefID == Scalpel_ID
 					or string.match(UnitDefs[unitDefID].name, "dyn")
 					or unitDefID == Locust_ID
-					or unitDefID == Revenant_ID
-					or unitDefID == Ripper_ID)) then
+					or unitDefID == Revenant_ID)) then
 				if  (UnitStack[units[i]]==nil) then
 					UnitStack[units[i]] = ShieldTargettingController:new(units[i]);
 				end

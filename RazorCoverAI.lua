@@ -43,7 +43,7 @@ local ignoreDefIDs = {
 -- precalculate the unitDefIDs we want to ignore
 for unitDefID, unitDef in pairs(UnitDefs) do
 	if unitDef.isAirUnit or unitDef.isBuilder and unitDef.energyStorage == 0 then
-		ignoreDefIDs = true
+		ignoreDefIDs[unitDefID] = true
 	end
 end
 
@@ -80,7 +80,7 @@ local RazorAI = {
 			for i=1, #units do
 				if (GetUnitIsDead(units[i]) == false) then
 					local unitDefID = GetUnitDefID(units[i])
-					if (unitDefID ~= nil and ignoreDefIDs[unitDefID]) then
+					if (unitDefID ~= nil and not ignoreDefIDs[unitDefID]) then
 						if (self.enemyNear == false)then
 							GiveOrderToUnit(self.unitID,CMD_FIRE_STATE, 0, 0)
 							self.enemyNear = true
