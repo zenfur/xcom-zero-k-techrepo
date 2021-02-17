@@ -1,7 +1,7 @@
 function widget:GetInfo()
 	return {
-		name         = "ShieldtargetAI",
-		desc         = "attempt to make units fire the shields of enemy units. Version 1.00",
+		name         = "ShieldtargetAI v2",
+		desc         = "attempt to make units fire the shields of enemy units. Version 2.00",
 		author       = "terve886",
 		date         = "2019",
 		license      = "PD", -- should be compatible with Spring
